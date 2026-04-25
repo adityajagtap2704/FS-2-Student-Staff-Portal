@@ -47,13 +47,26 @@ export default function AdmissionEnquiryPage() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setErrors({});
     setLoading(true);
-    // Simulate API call
-    await new Promise((r) => setTimeout(r, 1500));
-    const ref = generateRef();
-    setLoading(false);
     
-    // Redirect to confirmation page with ref number
-    router.push(`/admissions/confirmation?ref=${ref}`);
+    try {
+      const res = await fetch("/api/admissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!res.ok) throw new Error("Failed to submit");
+      
+      const data = await res.json();
+      setLoading(false);
+      
+      // Redirect to confirmation page with ref number from DB
+      router.push(`/admissions/confirmation?ref=${data.referenceNumber}`);
+    } catch (error) {
+      console.error("Submission error:", error);
+      setErrors({ submit: "Failed to submit enquiry. Please try again." });
+      setLoading(false);
+    }
   };
 
   // Get today's date for minimum date constraint

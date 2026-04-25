@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import prisma from "./db";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -7,20 +8,26 @@ export const authOptions: NextAuthOptions = {
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email", placeholder: "you@example.com" },
-        password: { label: "Password", type: "password" },
+        password: { label: "Roll Number", type: "password" },
       },
       async authorize(credentials) {
-        // Replace this with your actual DB/user lookup logic
-        if (
-          credentials?.email === "admin@kalnet.com" &&
-          credentials?.password === "password123"
-        ) {
+        if (!credentials?.email || !credentials?.password) return null;
+
+        // Verify against the REAL MySQL Database
+        const student = await prisma.student.findUnique({
+          where: { email: credentials.email },
+        });
+
+        // Use the student's Roll Number as their default password
+        if (student && student.rollNumber === credentials.password) {
           return {
-            id: "1",
-            name: "Admin User",
-            email: "admin@kalnet.com",
+            id: student.id.toString(),
+            name: student.name,
+            email: student.email,
           };
         }
+
+        // Return null if user data could not be retrieved
         return null;
       },
     }),

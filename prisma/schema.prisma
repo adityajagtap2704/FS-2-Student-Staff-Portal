@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id              Int            @id @default(autoincrement())
+  name            String
+  email           String         @unique
+  phone           String
+  parentName      String
+  classEnrolled   String
+  rollNumber      String         @unique
+  admissionDate   DateTime
+  isActive        Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  fees            Fee[]
+  leaveRequests   LeaveRequest[]
+
+  @@map("students")
+}
+
+model Admission {
+  id              Int      @id @default(autoincrement())
+  referenceNumber String   @unique
+  studentName     String
+  parentName      String
+  phone           String
+  classApplied    String
+  status          Status   @default(PENDING)
+  submittedAt     DateTime @default(now())
+
+  @@map("admissions")
+}
+
+model Fee {
+  id          Int       @id @default(autoincrement())
+  studentId   Int
+  term        String
+  dueDate     DateTime
+  amount      Decimal   @db.Decimal(10, 2)
+  paidAmount  Decimal   @default(0.00) @db.Decimal(10, 2)
+  type        FeeType
+  status      FeeStatus @default(PENDING)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("fees")
+}
+
+model Announcement {
+  id          Int                  @id @default(autoincrement())
+  title       String
+  category    AnnouncementCategory
+  description String               @db.Text
+  author      String
+  date        DateTime
+  imageUrl    String?              @db.VarChar(1000)
+  createdAt   DateTime             @default(now())
+
+  @@map("announcements")
+}
+
+model LeaveRequest {
+  id          Int         @id @default(autoincrement())
+  studentId   Int
+  leaveType   String
+  fromDate    DateTime
+  toDate      DateTime
+  reason      String      @db.Text
+  status      Status      @default(PENDING)
+  submittedAt DateTime    @default(now())
+  student     Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("leave_requests")
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FeeType {
+  Tuition
+  Transport
+  Activity
+}
+
+enum FeeStatus {
+  PAID
+  PENDING
+  OVERDUE
+}
+
+enum AnnouncementCategory {
+  Events
+  Exams
+  Holidays
+  General
+}

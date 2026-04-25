@@ -1,26 +1,46 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Calendar, User, ChevronRight, Share2 } from "lucide-react";
-import { announcements } from "@/lib/data";
+import { ArrowLeft, Calendar, User, ChevronRight, Share2, Loader2 } from "lucide-react";
+
+import { Announcement } from "@prisma/client";
 
 export default function AnnouncementDetailPage({ params }: { params: { id: string } }) {
-  const announcement = announcements.find((a) => a.id === params.id);
+  const [announcement, setAnnouncement] = useState<Announcement | null>(null);
+  const [related, setRelated] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const res = await fetch(`/api/announcements/${params.id}`);
+        if (!res.ok) { setAnnouncement(null); return; }
+        const data = await res.json();
+        setAnnouncement(data);
+
+        // Fetch related (same category)
+        const relRes = await fetch(`/api/announcements?category=${data.category}`);
+        const relData = await relRes.json();
+        setRelated(relData.filter((a: any) => a.id !== data.id).slice(0, 3));
+      } catch (error) {
+        console.error("Fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, [params.id]);
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <Loader2 className="h-10 w-10 text-primary animate-spin" />
+    </div>
+  );
 
   if (!announcement) {
-    notFound();
-  }
-
-  // Find related announcements (same category, excluding current, max 3)
-  const related = announcements
-    .filter((a) => a.category === announcement.category && a.id !== announcement.id)
-    .slice(0, 3);
-  
-  // If not enough related, pad with latest ones
-  if (related.length < 3) {
-    const more = announcements
-      .filter((a) => a.id !== announcement.id && !related.find((r) => r.id === a.id))
-      .slice(0, 3 - related.length);
-    related.push(...more);
+    return notFound();
   }
 
   return (
@@ -88,7 +108,7 @@ export default function AnnouncementDetailPage({ params }: { params: { id: strin
           )}
 
           <div className="prose prose-lg prose-blue max-w-none text-gray-600">
-            {announcement.description.split('\n').map((paragraph, index) => (
+            {announcement.description.split('\n').map((paragraph: string, index: number) => (
               <p key={index} className="mb-4 leading-relaxed">
                 {paragraph}
               </p>

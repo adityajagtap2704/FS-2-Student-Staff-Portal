@@ -184,6 +184,7 @@ export default function HomePage() {
               { label: "Features",     href: "#features" },
               { label: "How it works", href: "#how"      },
               { label: "Admissions",   href: "/admissions/enquire" },
+              { label: "Announcements",href: "/announcements" },
             ].map(({ label, href }) => (
               <motion.div
                 key={label}

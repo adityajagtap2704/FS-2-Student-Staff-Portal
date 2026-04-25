@@ -110,7 +110,7 @@ export default function LoginPage() {
 
             <motion.div variants={staggerItem} transition={{ ...easeOut, delay: 0.15 }}>
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-[#444]">Password</label>
+                <label className="block text-sm font-medium text-[#444]">Roll Number (Password)</label>
                 <div className="relative">
                   <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                     <Lock size={15} />
@@ -120,7 +120,7 @@ export default function LoginPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
+                    placeholder="KN-2024-XXX"
                     autoComplete="current-password"
                     className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-10 py-2.5 text-sm text-[#444] placeholder:text-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary hover:border-gray-300"
                   />
@@ -180,18 +180,7 @@ export default function LoginPage() {
             </motion.div>
           </motion.form>
 
-          {/* Demo credentials */}
-          <motion.div
-            variants={staggerItem}
-            transition={{ ...easeOut, delay: 0.25 }}
-            className="mt-6 p-3.5 bg-gray-50 rounded-xl border border-gray-100"
-          >
-            <p className="text-xs font-medium text-gray-500 mb-1.5">Demo credentials</p>
-            <div className="space-y-1">
-              <p className="text-xs text-gray-400 font-mono">admin@kalnet.com</p>
-              <p className="text-xs text-gray-400 font-mono">password123</p>
-            </div>
-          </motion.div>
+          {/* Removed Demo Credentials Block */}
 
           <motion.p
             variants={staggerItem}
