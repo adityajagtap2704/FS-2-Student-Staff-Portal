@@ -28,9 +28,10 @@ interface Props {
     badge: "success"|"warning"|"info"|"danger"; badgeLabel: string;
   }[];
   quickLinks: { href: string; label: string; icon: string; color: string; bg: string }[];
+  feesSummary: { totalDue: number; totalPaid: number; outstanding: number };
 }
 
-export default function DashboardClient({ session, greeting, activity, quickLinks }: Props) {
+export default function DashboardClient({ session, greeting, activity, quickLinks, feesSummary }: Props) {
   return (
     <div className="space-y-5">
       {/* Hero greeting */}
@@ -66,15 +67,15 @@ export default function DashboardClient({ session, greeting, activity, quickLink
         initial="initial"
         animate="animate"
       >
-        <StatCard label="Total Fees" value="₹25,500" sub="Academic year 2026"
+        <StatCard label="Total Fees" value={`₹${feesSummary.totalDue.toLocaleString()}`} sub="Academic year 2026"
           icon={<CreditCard size={18} className="text-primary" />} iconBg="bg-primary-50"
           badge="3 Terms" badgeVariant="primary" delay={0.05} />
-        <StatCard label="Paid" value="₹8,500" sub="Term 1 cleared"
+        <StatCard label="Amount Paid" value={`₹${feesSummary.totalPaid.toLocaleString()}`} sub="Paid to date"
           icon={<CheckCircle2 size={18} className="text-emerald-600" />} iconBg="bg-emerald-50"
-          badge="On time" badgeVariant="success" trend={{ value: "33%", up: true }} delay={0.1} />
-        <StatCard label="Outstanding" value="₹17,000" sub="Terms 2 & 3 pending"
+          badge="Updated" badgeVariant="success" delay={0.1} />
+        <StatCard label="Outstanding" value={`₹${feesSummary.outstanding.toLocaleString()}`} sub="Balance due"
           icon={<AlertCircle size={18} className="text-red-500" />} iconBg="bg-red-50"
-          badge="Due soon" badgeVariant="danger" delay={0.15} />
+          badge={feesSummary.outstanding > 0 ? "Action needed" : "Cleared"} badgeVariant={feesSummary.outstanding > 0 ? "danger" : "success"} delay={0.15} />
       </motion.div>
 
       {/* Quick actions */}

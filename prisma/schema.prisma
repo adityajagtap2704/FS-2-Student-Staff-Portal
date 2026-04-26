@@ -8,53 +8,82 @@ datasource db {
 }
 
 model Student {
-  id             Int            @id @default(autoincrement())
-  name           String
-  email          String         @unique
-  phone          String
-  parentName     String
-  classEnrolled  String
-  rollNumber     String         @unique
-  admissionDate  DateTime
-  isActive       Boolean        @default(true)
-  createdAt      DateTime       @default(now())
-  fees           Fee[]
-  leaveRequests  LeaveRequest[]
+  id            Int            @id @default(autoincrement())
+  name          String         @db.VarChar(255)
+  email         String         @unique(map: "email") @db.VarChar(255)
+  phone         String         @db.VarChar(20)
+  parentName    String         @db.VarChar(255)
+  classEnrolled String         @db.VarChar(50)
+  rollNumber    String         @unique(map: "rollNumber") @db.VarChar(50)
+  admissionDate DateTime       @db.Date
+  isActive      Boolean?       @default(true)
+  createdAt     DateTime?      @default(now()) @db.Timestamp(0)
+  fees          Fee[]
+  leaveRequests LeaveRequest[]
 
   @@map("students")
 }
 
 model Admission {
-  id              Int             @id @default(autoincrement())
-  referenceNumber String          @unique
-  studentName     String
-  parentName      String
-  phone           String
-  classApplied    String
-  status          AdmissionStatus @default(PENDING)
-  submittedAt     DateTime        @default(now())
+  id              Int              @id @default(autoincrement())
+  referenceNumber String           @unique(map: "referenceNumber") @db.VarChar(50)
+  studentName     String           @db.VarChar(255)
+  parentName      String           @db.VarChar(255)
+  phone           String           @db.VarChar(20)
+  classApplied    String           @db.VarChar(50)
+  status          AdmissionStatus? @default(PENDING)
+  submittedAt     DateTime?        @default(now()) @db.Timestamp(0)
 
   @@map("admissions")
+}
+
+model Fee {
+  id         Int        @id @default(autoincrement())
+  studentId  Int
+  term       String     @db.VarChar(50)
+  dueDate    DateTime   @db.Date
+  amount     Decimal    @db.Decimal(10, 2)
+  paidAmount Decimal?   @default(0.00) @db.Decimal(10, 2)
+  type       FeeType
+  status     FeeStatus? @default(PENDING)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fees_ibfk_1")
+
+  @@index([studentId], map: "studentId")
+  @@map("fees")
+}
+
+model Announcement {
+  id          Int                  @id @default(autoincrement())
+  title       String               @db.VarChar(255)
+  category    AnnouncementCategory
+  description String               @db.Text
+  author      String               @db.VarChar(255)
+  date        DateTime             @db.Date
+  imageUrl    String?              @db.VarChar(1000)
+  createdAt   DateTime?            @default(now()) @db.Timestamp(0)
+
+  @@map("announcements")
+}
+
+model LeaveRequest {
+  id          Int                 @id @default(autoincrement())
+  studentId   Int
+  leaveType   String              @db.VarChar(50)
+  fromDate    DateTime            @db.Date
+  toDate      DateTime            @db.Date
+  reason      String              @db.Text
+  status      LeaveRequestStatus? @default(PENDING)
+  submittedAt DateTime?           @default(now()) @db.Timestamp(0)
+  student     Student             @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "leave_requests_ibfk_1")
+
+  @@index([studentId], map: "studentId")
+  @@map("leave_requests")
 }
 
 enum AdmissionStatus {
   PENDING
   APPROVED
   REJECTED
-}
-
-model Fee {
-  id         Int       @id @default(autoincrement())
-  studentId  Int
-  student    Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  term       String
-  dueDate    DateTime
-  amount     Decimal   @db.Decimal(10, 2)
-  paidAmount Decimal   @default(0.00) @db.Decimal(10, 2)
-  type       FeeType
-  status     FeeStatus @default(PENDING)
-
-  @@map("fees")
 }
 
 enum FeeType {
@@ -69,38 +98,11 @@ enum FeeStatus {
   OVERDUE
 }
 
-model Announcement {
-  id          Int                  @id @default(autoincrement())
-  title       String
-  category    AnnouncementCategory
-  description String               @db.Text
-  author      String
-  date        DateTime
-  imageUrl    String?              @db.VarChar(1000)
-  createdAt   DateTime             @default(now())
-
-  @@map("announcements")
-}
-
 enum AnnouncementCategory {
   Events
   Exams
   Holidays
   General
-}
-
-model LeaveRequest {
-  id          Int                 @id @default(autoincrement())
-  studentId   Int
-  student     Student             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  leaveType   String
-  fromDate    DateTime
-  toDate      DateTime
-  reason      String              @db.Text
-  status      LeaveRequestStatus @default(PENDING)
-  submittedAt DateTime            @default(now())
-
-  @@map("leave_requests")
 }
 
 enum LeaveRequestStatus {
