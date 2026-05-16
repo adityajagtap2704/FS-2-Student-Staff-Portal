@@ -70,9 +70,14 @@ export default function DocumentVerificationClient() {
         }
       }
 
-      setDocuments(allDocs);
+      // Sort by uploadedAt descending (newest first)
+      const sorted = allDocs.sort((a, b) => 
+        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+      );
+      
+      setDocuments(sorted);
     } catch (error) {
-      toast.error("Documents", "Failed to load documents");
+      toast.error("Failed to Load Documents", "Please refresh the page");
       console.error(error);
     } finally {
       setLoading(false);
@@ -85,7 +90,7 @@ export default function DocumentVerificationClient() {
 
   const handleVerify = async (docId: number, status: "VERIFIED" | "REJECTED") => {
     if (status === "REJECTED" && !rejectionReason.trim()) {
-      toast.error("Validation", "Please provide a rejection reason");
+      toast.error("Validation Error", "Please provide a rejection reason");
       return;
     }
 
@@ -100,18 +105,36 @@ export default function DocumentVerificationClient() {
         }),
       });
 
-      if (!res.ok) throw new Error("Verification failed");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Verification failed");
+      }
 
-      toast.success(
-        "Document verified",
-        `Document has been ${status === "VERIFIED" ? "verified" : "rejected"}`
-      );
+      const result = await res.json();
+      
+      // Show document-specific alert
+      if (status === "VERIFIED") {
+        toast.success(
+          `${selectedDoc?.documentType} Verified`,
+          `Document for ${selectedDoc?.student?.name} has been verified successfully.`
+        );
+      } else {
+        toast.success(
+          `${selectedDoc?.documentType} Rejected`,
+          `Document for ${selectedDoc?.student?.name} has been rejected. Reason: ${rejectionReason}`
+        );
+      }
+      
       setShowVerifyModal(false);
       setRejectionReason("");
       setSelectedDoc(null);
       await loadDocuments();
     } catch (error) {
-      toast.error("Verification failed", "Please try again");
+      const errorMsg = error instanceof Error ? error.message : "Please try again";
+      toast.error(
+        "Verification Failed",
+        `${selectedDoc?.documentType}: ${errorMsg}`
+      );
       console.error(error);
     } finally {
       setVerifying(false);
@@ -227,15 +250,37 @@ export default function DocumentVerificationClient() {
               </div>
 
               <div className="border-t pt-4">
-                <a
-                  href={selectedDoc.fileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 text-primary hover:text-primary-600 text-sm font-medium"
-                >
-                  <Eye size={16} />
-                  View Document
-                </a>
+                {selectedDoc.fileUrl ? (
+                  <motion.button
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/students/documents/${selectedDoc.id}/signed-url`);
+                        if (res.ok) {
+                          const data = await res.json();
+                          if (data.isBase64) {
+                            // For base64 documents, open directly
+                            window.open(data.signedUrl, "_blank");
+                          } else {
+                            // For S3 documents, open signed URL
+                            window.open(data.signedUrl, "_blank");
+                          }
+                        } else {
+                          const error = await res.json();
+                          toast.error("Error", error.error || "Failed to generate download link");
+                        }
+                      } catch (error) {
+                        toast.error("Error", "Failed to generate download link");
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 text-primary hover:text-primary-600 text-sm font-medium"
+                    whileHover={{ scale: 1.05 }}
+                  >
+                    <Eye size={16} />
+                    View Document
+                  </motion.button>
+                ) : (
+                  <p className="text-sm text-gray-500">Document URL not available</p>
+                )}
               </div>
 
               <div>
@@ -325,15 +370,29 @@ export default function DocumentVerificationClient() {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <motion.a
-                          href={doc.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-600 transition-colors"
-                          whileHover={{ scale: 1.05 }}
-                        >
-                          <Download size={12} />
-                        </motion.a>
+                        {doc.fileUrl && (
+                          <motion.button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/students/documents/${doc.id}/signed-url`);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  window.open(data.signedUrl, "_blank");
+                                } else {
+                                  const error = await res.json();
+                                  toast.error("Error", error.error || "Failed to generate download link");
+                                }
+                              } catch (error) {
+                                toast.error("Error", "Failed to generate download link");
+                              }
+                            }}
+                            className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-600 transition-colors"
+                            whileHover={{ scale: 1.05 }}
+                            title="Download from S3"
+                          >
+                            <Download size={12} />
+                          </motion.button>
+                        )}
                         {doc.status === "PENDING" && (
                           <Button
                             size="xs"

@@ -18,7 +18,7 @@ import { staggerContainer, easeOut } from "@/components/motion/MotionConfig";
 
 interface Props { session: Session }
 
-type Tab = "overview" | "leave" | "admissions" | "staff" | "fees" | "payments" | "announcements";
+type Tab = "overview" | "leave" | "admissions" | "staff" | "fees" | "announcements";
 
 const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "overview",      label: "Overview",      icon: BookOpen    },
@@ -26,7 +26,6 @@ const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "admissions",    label: "Admissions",    icon: Users       },
   { key: "staff",         label: "Staff",         icon: CheckCircle2},
   { key: "fees",          label: "Fees",          icon: CreditCard  },
-  { key: "payments",      label: "Payments",      icon: CreditCard  },
   { key: "announcements", label: "Announcements", icon: Megaphone   },
 ];
 
@@ -178,7 +177,6 @@ export default function HodClient({ session }: Props) {
   const [fees,          setFees]          = useState<{ fees: any[]; summary: Record<string, { count: number; total: number }> } | null>(null);
   const [feesView,      setFeesView]      = useState<{ fees: any[]; summary: any; classes: string[]; activeClass: string } | null>(null);
   const [feeClass,      setFeeClass]      = useState<string>("ALL");
-  const [payments,      setPayments]      = useState<any[]>([]);
   const [recentAnns,    setRecentAnns]    = useState<any[]>([]);
   const [loadingAnns,   setLoadingAnns]   = useState(true);
 
@@ -186,7 +184,6 @@ export default function HodClient({ session }: Props) {
   const [loadingA, setLoadingA] = useState(false);
   const [loadingS, setLoadingS] = useState(false);
   const [loadingF, setLoadingF] = useState(false);
-  const [loadingP, setLoadingP] = useState(false);
   const [loadingFV, setLoadingFV] = useState(false);
 
   // ── Track which tabs have been loaded ────────────────────────────────────
@@ -284,13 +281,6 @@ export default function HodClient({ session }: Props) {
         .then(r => r.json()).then(d => { setRecentAnns(Array.isArray(d) ? d : []); setLoadingAnns(false); })
         .catch(() => setLoadingAnns(false));
     }
-    if (activeTab === "payments") {
-      setLoadingP(true);
-      fetch("/api/payments?limit=100")
-        .then(r => r.json())
-        .then(d => { setPayments(Array.isArray(d?.payments) ? d.payments : []); setLoadingP(false); })
-        .catch(() => setLoadingP(false));
-    }
     if (activeTab === "fees") {
       setLoadingFV(true);
       const q = feeClass && feeClass !== "ALL" ? `?class=${encodeURIComponent(feeClass)}` : "";
@@ -325,7 +315,7 @@ export default function HodClient({ session }: Props) {
 
   // ── Initial load for overview ─────────────────────────────────────────────
   useEffect(() => {
-    setLoadingL(true); setLoadingA(true); setLoadingS(true); setLoadingF(true); setLoadingP(true);
+    setLoadingL(true); setLoadingA(true); setLoadingS(true); setLoadingF(true);
     setLoadedTabs(new Set(["overview"]));
 
     fetch("/api/hod/leave")
@@ -343,10 +333,6 @@ export default function HodClient({ session }: Props) {
     fetch("/api/announcements")
       .then(r => r.json()).then(d => { setRecentAnns(Array.isArray(d) ? d : []); setLoadingAnns(false); })
       .catch(() => setLoadingAnns(false));
-    fetch("/api/payments?limit=100")
-      .then(r => r.json())
-      .then(d => { setPayments(Array.isArray(d?.payments) ? d.payments : []); setLoadingP(false); })
-      .catch(() => setLoadingP(false));
     fetch("/api/hod/fees")
       .then(r => r.json())
       .then(d => { setFeesView(d); setLoadingFV(false); })
@@ -1231,53 +1217,6 @@ export default function HodClient({ session }: Props) {
                     ))}
                     {(feesView?.fees ?? []).length === 0 && (
                       <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-400">No fee records found.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          PAYMENTS TAB
-      ══════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "payments" && (
-        <div className="space-y-4">
-          <Card title="Payment Transactions" subtitle="Latest fee payments across all classes" noPadding delay={0.1}>
-            {loadingP ? (
-              <SkeletonTable rows={6} />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-50">
-                      {["Student", "Class", "Term", "Amount", "Status", "Receipt", "Updated"].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {payments.map((p: any) => (
-                      <tr key={`${p.razorpayOrderId}`} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="px-4 py-3 font-medium text-[#444] whitespace-nowrap">{p.studentName ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{p.classEnrolled ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{p.term ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-500">₹{((Number(p.amountPaise) || 0) / 100).toLocaleString("en-IN")}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant={p.status === "PAID" ? "success" : p.status === "FAILED" ? "danger" : "neutral"} dot>
-                            {String(p.status).toLowerCase()}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-gray-500 font-mono text-xs">{p.receiptNumber ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                          {p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                    {payments.length === 0 && (
-                      <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No payment records found.</td></tr>
                     )}
                   </tbody>
                 </table>

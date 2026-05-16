@@ -20,6 +20,64 @@ export async function GET(req: Request) {
       orderBy: [{ dueDate: "asc" }, { id: "asc" }],
     });
 
+    // Group fees by student and aggregate their status
+    const studentFeesMap = new Map<number, any>();
+    
+    for (const fee of fees) {
+      if (!studentFeesMap.has(fee.studentId)) {
+        studentFeesMap.set(fee.studentId, {
+          id: fee.id,
+          studentId: fee.studentId,
+          student: fee.student,
+          term: fee.term,
+          dueDate: fee.dueDate,
+          amount: Number(fee.amount),
+          paidAmount: Number(fee.paidAmount),
+          status: fee.status,
+          allTerms: [],
+          totalAmount: 0,
+          totalPaidAmount: 0,
+          totalDueAmount: 0,
+          hasOverdue: false,
+          hasPending: false,
+          allPaid: true,
+        });
+      }
+      
+      const studentData = studentFeesMap.get(fee.studentId)!;
+      studentData.allTerms.push({
+        term: fee.term,
+        amount: Number(fee.amount),
+        paidAmount: Number(fee.paidAmount),
+        status: fee.status,
+      });
+      
+      studentData.totalAmount += Number(fee.amount);
+      studentData.totalPaidAmount += Number(fee.paidAmount);
+      studentData.totalDueAmount += Number(fee.amount) - Number(fee.paidAmount);
+      
+      if (fee.status === "OVERDUE") studentData.hasOverdue = true;
+      if (fee.status === "PENDING") studentData.hasPending = true;
+      if (fee.status !== "PAID") studentData.allPaid = false;
+    }
+
+    // Determine aggregated status for each student
+    const deduplicatedFees = Array.from(studentFeesMap.values()).map(student => {
+      let aggregatedStatus = "PAID";
+      if (student.hasOverdue) {
+        aggregatedStatus = "OVERDUE";
+      } else if (student.hasPending) {
+        aggregatedStatus = "PENDING";
+      }
+      
+      return {
+        ...student,
+        status: aggregatedStatus,
+        amount: student.totalAmount,
+        paidAmount: student.totalPaidAmount,
+      };
+    });
+
     const summary = {
       PAID:    { count: 0, total: 0 },
       PENDING: { count: 0, total: 0 },
@@ -38,7 +96,8 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json({
-      fees,
+      fees: deduplicatedFees,
+      allFees: fees,
       summary,
       classes: classes.map(c => c.classEnrolled).filter(Boolean).sort(),
       activeClass: classFilter || "ALL",

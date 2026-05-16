@@ -2,15 +2,10 @@
 
 ## 📚 Project Overview
 
-**KALNET FS-2** is a comprehensive student and staff portal system built as part of the KALNET ecosystem. This portal serves as the primary interface for students to manage their academic activities, including fee payments, leave requests, and staying updated with school announcements.
+**KALNET FS-2** is a comprehensive student and staff portal system built as part of the KALNET ecosystem. This portal serves as the primary interface for students to manage their academic activities, including fee payments, leave requests, and staying updated with school announcements. Staff members can manage their class, approve student leaves, and track their own leave requests.
 
 ### 🎯 Vision
-A student opens KALNET on their phone and instantly sees their fee balance. They tap "Leave Request", fill 3 fields, and submit. Their leave triggers an approval chain in the FS-1 system automatically. They check the Announcements board. Their parent fills in the admission enquiry form and gets a reference number. This is the face of KALNET — the first thing a school shows to parents.
-
-### 🏗️ System Architecture
-- **System**: System 1 (Full Stack)
-- **Track**: Full Stack Development
-- **Demo Deadline**: Week 4, April 2026
+A student opens KALNET on their phone and instantly sees their fee balance. They tap "Leave Request", fill 3 fields, and submit. Their leave triggers an approval chain in the FS-1 system automatically. They check the Announcements board. Their parent fills in the admission enquiry form and gets a reference number. Staff members can manage their assigned class, approve student leaves, and submit their own leave requests. This is the face of KALNET — the first thing a school shows to parents and staff.
 
 ---
 
@@ -36,45 +31,60 @@ A student opens KALNET on their phone and instantly sees their fee balance. They
 - **📝 Admission Enquiry**: Public form for new student admissions with reference number generation
 - **💰 Fee Management**: View fee status, payment history, and outstanding balances
 - **📅 Leave Requests**: Submit leave requests with automatic approval chain integration
+  - Monthly limit: 2 days
+  - Yearly limit: 10 days
+  - Real-time balance calculation
+  - Pending vs approved leave tracking
 - **📢 Announcements Board**: Browse school announcements with category filtering
 - **👤 Profile Management**: View and manage personal information
 - **📱 Mobile-First Design**: Fully responsive for mobile devices (375px+)
+
+### 👨‍🏫 Staff Portal Features
+- **📊 My Dashboard**: Quick overview of class statistics
+  - Total students in assigned class
+  - Pending student leave requests
+  - Personal pending leave requests
+- **👥 My Students**: View all students in assigned class with:
+  - Student details (name, roll number, parent info, phone)
+  - Leave balance (monthly and yearly)
+  - Active/Inactive status
+  - Real-time leave calculations
+- **📋 Student Leaves**: Manage student leave requests
+  - View pending, approved, and rejected leaves
+  - Approve or reject student leave requests
+  - Filter by status
+  - See leave balance for each student
+- **📅 My Leaves**: Manage personal leave requests
+  - View leave balance (monthly and yearly)
+  - Monthly breakdown chart
+  - Submit new leave requests
+  - View leave history
+  - Track pending approvals
+- **💰 Fees**: View fee status for assigned class
+  - Total fees, paid amount, outstanding balance
+  - Per-student fee details
+  - Payment status tracking
+- **💳 Payments**: View recent payment transactions
+  - Payment history
+  - Receipt numbers
+  - Transaction status
 
 ### 🔐 Security & Authentication
 - **NextAuth.js Integration**: Secure credential-based authentication
 - **Route Protection**: All dashboard routes protected with middleware
 - **Session Management**: JWT-based session handling
-- **Role-Based Access**: Student-specific access controls
-
-### 🎨 User Experience
-- **Modern UI**: Clean, professional design with KALNET branding
-- **Smooth Animations**: Framer Motion powered transitions
-- **Loading States**: Proper loading indicators throughout the app
-- **Error Handling**: Comprehensive error messages and validation
-- **Toast Notifications**: User feedback for all actions
-
----
-
-## 👥 Team Members
-
-| Role | Name | Focus Area |
-|------|------|------------|
-| **Team Lead** | Aditya Bibhishan Jagtap | Architecture, PR review, daily standup, CTO reports |
-| **UI Developer 1** | K. Venkata Madham Mohan | Admission forms, Announcements board |
-| **API Developer** | Gharke Ram Prasad | Backend APIs, database integration |
-| **DB Developer** | Aravind Kurra | Database schema, seeding, migrations |
-| **UI Developer 2** | Tanoor Kiran | Fee status, Leave requests, responsive design |
-| **QA + Integration** | Billola Abhinay Goud | Testing, FS-1 integration, documentation |
+- **Role-Based Access**: Student, Staff (CLASS_TEACHER), and HOD access controls
+- **Middleware Protection**: Automatic role-based redirects
 
 ---
 
 ## 📋 Prerequisites
 
-Before running this project, ensure you have the following installed:
+Before running this project, ensure you have:
 
 ### Required Software
 - **Node.js**: Version 18.0 or higher
-- **npm**: Version 8.0 or higher (comes with Node.js)
+- **npm**: Version 8.0 or higher
 - **MySQL**: Version 8.0 or higher
 - **Git**: For version control
 
@@ -89,17 +99,12 @@ Before running this project, ensure you have the following installed:
 
 ### Step 1: Clone the Repository
 ```bash
-# Navigate to your desired directory
-cd your-projects-folder
-
-# Clone the repository
 git clone <repository-url>
 cd FS-2-Student-Staff-Portal
 ```
 
 ### Step 2: Install Dependencies
 ```bash
-# Install all required packages
 npm install
 ```
 
@@ -107,160 +112,149 @@ npm install
 Create a `.env.local` file in the root directory:
 
 ```env
-# Database Configuration
 DATABASE_URL="mysql://username:password@localhost:3306/kalnet_fs2"
-
-# NextAuth Configuration
 NEXTAUTH_SECRET="your-super-secret-key-change-in-production"
 NEXTAUTH_URL="http://localhost:3000"
-
-# Optional: For production deployment
-# NEXTAUTH_URL="https://your-domain.com"
 ```
 
 **Important Notes:**
 - Replace `username` and `password` with your MySQL credentials
 - Create a database named `kalnet_fs2` in MySQL
-- Generate a secure `NEXTAUTH_SECRET` (use `openssl rand -base64 32`)
+- Generate a secure `NEXTAUTH_SECRET` using: `openssl rand -base64 32`
 
 ### Step 4: Database Setup
 ```bash
-# Generate Prisma client
 npx prisma generate
-
-# Run database migrations
 npx prisma db push
-
-# Seed the database with sample data
 npx prisma db seed
 ```
 
 ### Step 5: Start Development Server
 ```bash
-# Start the development server
 npm run dev
 ```
 
+The server will start on `http://localhost:3000` (or `http://localhost:3001` if port 3000 is in use).
+
 ### Step 6: Access the Application
-Open your browser and navigate to:
-- **Local Development**: [http://localhost:3000](http://localhost:3000)
-- **Admission Enquiry** (Public): [http://localhost:3000/admissions/enquire](http://localhost:3000/admissions/enquire)
-- **Announcements** (Public): [http://localhost:3000/announcements](http://localhost:3000/announcements)
+
+#### Public Pages (No Login Required)
+- **Admission Enquiry**: http://localhost:3000/admissions/enquire
+- **Announcements**: http://localhost:3000/announcements
+
+#### Student Portal (Login Required)
+- **Login**: http://localhost:3000/login
+- **Dashboard**: http://localhost:3000/dashboard
+- **Fees**: http://localhost:3000/dashboard/fees
+- **Leave Requests**: http://localhost:3000/dashboard/leave
+
+#### Staff Portal (Login Required - CLASS_TEACHER or HOD role)
+- **Staff Dashboard**: http://localhost:3000/dashboard/staff
+- **My Leaves**: http://localhost:3000/dashboard/staff/my-leaves
+- **Student Leaves**: http://localhost:3000/dashboard/staff/leaves
+- **My Students**: http://localhost:3000/dashboard/staff/students
+- **Fees**: http://localhost:3000/dashboard/staff/fees
+- **Payments**: http://localhost:3000/dashboard/staff/payments
 
 ---
 
-## 🗄️ Database Schema
+## 🎮 Usage Guide
 
-### Core Tables
+### For Students
 
-#### Students Table
-```sql
-- id (Primary Key)
-- name (Student full name)
-- email (Unique, for login)
-- phone (+91 format)
-- parentName
-- classEnrolled (Class 6-12)
-- rollNumber (Unique, KN-2024-XXX format)
-- admissionDate
-- isActive (Boolean)
-```
+#### 1. First Time Access
+1. Visit the admission enquiry page (public)
+2. Fill out the admission form with your details
+3. Receive a reference number for tracking
+4. Wait for approval from the school
 
-#### Fees Table
-```sql
-- id (Primary Key)
-- studentId (Foreign Key)
-- term (e.g., "Term 1 2026")
-- dueDate
-- amount (Decimal)
-- paidAmount (Decimal, nullable)
-- type (Tuition/Transport/Activity)
-- status (PAID/PENDING/OVERDUE)
-```
+#### 2. Regular Usage
+1. **Login**: Use your school email and password
+2. **Dashboard**: View your activity summary and quick links
+3. **Fees**: Check your payment status and outstanding balances
+4. **Leave Requests**: 
+   - Submit leave requests (max 2 days/month, 10 days/year)
+   - View your leave balance
+   - Track pending approvals
+   - See your leave history
+5. **Announcements**: Stay updated with school news and events
 
-#### Leave Requests Table
-```sql
-- id (Primary Key)
-- studentId (Foreign Key)
-- leaveType
-- fromDate
-- toDate
-- reason (Text)
-- status (PENDING/APPROVED/REJECTED)
-- submittedAt
-```
+#### 3. Leave Request Process
+1. Navigate to "Leave Requests" in dashboard
+2. Click "Request Leave"
+3. Select leave type (Medical, Family, Personal, etc.)
+4. Choose from and to dates
+5. Provide reason
+6. Submit request
+7. Wait for HOD approval
+8. Check status in "My Leave History"
 
-#### Announcements Table
-```sql
-- id (Primary Key)
-- title
-- category (Events/Exams/Holidays/General)
-- description (Text)
-- author
-- date
-- imageUrl (Optional)
-- createdAt
-```
+### For Staff (CLASS_TEACHER)
 
-#### Admissions Table
-```sql
-- id (Primary Key)
-- referenceNumber (ENQ-YYYYMM-XXXX format)
-- studentName
-- parentName
-- phone
-- classApplied
-- status (PENDING/APPROVED/REJECTED)
-- submittedAt
-```
+#### 1. First Time Access
+1. Receive login credentials from HOD
+2. Login with email and password
+3. You'll be assigned to a class
+
+#### 2. Dashboard Overview
+1. **My Dashboard**: See quick stats about your class
+   - Total students
+   - Pending student leave requests
+   - Your pending leave requests
+
+#### 3. Managing Students
+1. **My Students**: View all students in your class
+   - See student details (name, roll number, parent info)
+   - Check each student's leave balance
+   - View active/inactive status
+
+#### 4. Approving Student Leaves
+1. **Student Leaves**: View all leave requests from your class
+2. Filter by status (Pending, Approved, Rejected, All)
+3. Review each request with student details and leave balance
+4. Click "Approve" or "Reject"
+5. Approved leaves are recorded in student's history
+
+#### 5. Managing Your Own Leaves
+1. **My Leaves**: Manage your personal leave requests
+2. View your leave balance (monthly and yearly)
+3. See monthly breakdown chart
+4. Submit new leave request:
+   - Select leave type
+   - Choose dates
+   - Provide reason
+   - Submit for HOD approval
+5. Track pending approvals
+6. View your leave history
+
+#### 6. Viewing Fees and Payments
+1. **Fees**: See fee status for all students in your class
+   - Total fees, paid amount, outstanding
+   - Per-student fee details
+   - Payment status (Paid/Pending/Overdue)
+2. **Payments**: View recent payment transactions
+   - Payment history
+   - Receipt numbers
+   - Transaction status
 
 ---
 
-## 🔌 API Endpoints
+## 🔧 Development Commands
 
-### Public Endpoints (No Authentication Required)
+```bash
+# Development
+npm run dev              # Start development server
+npm run build           # Build for production
+npm run start           # Start production server
+npm run lint            # Run ESLint
 
-#### Admission Enquiry
+# Database
+npx prisma studio       # Open Prisma Studio (database GUI)
+npx prisma generate     # Generate Prisma client
+npx prisma db push      # Push schema changes to database
+npx prisma db seed      # Seed database with sample data
+npx prisma migrate dev  # Create and apply migrations
 ```
-POST /api/admissions
-```
-- **Purpose**: Submit new student admission enquiry
-- **Body**: `{ studentName, parentName, email?, phone, grade, startDate, message? }`
-- **Response**: `{ id, referenceNumber, ... }`
-
-#### Announcements
-```
-GET /api/announcements
-GET /api/announcements?category=Events
-GET /api/announcements/[id]
-```
-- **Purpose**: Fetch announcements with optional category filtering
-- **Response**: Array of announcements or single announcement object
-
-### Protected Endpoints (Authentication Required)
-
-#### Fees Management
-```
-GET /api/fees
-GET /api/fees/[studentId]
-```
-- **Purpose**: Get fee records for current user or specific student
-- **Response**: `{ records: [...], summary: { totalDue, totalPaid, outstanding } }`
-
-#### Leave Requests
-```
-POST /api/leave
-```
-- **Purpose**: Submit new leave request
-- **Body**: `{ type, from, to, reason }`
-- **Response**: Leave request object with ID
-
-#### Authentication
-```
-POST /api/auth/[...nextauth]
-```
-- **Purpose**: NextAuth.js authentication handler
-- **Methods**: Sign in, sign out, session management
 
 ---
 
@@ -283,10 +277,12 @@ FS-2-Student-Staff-Portal/
 │   │   ├── ui/              # Basic UI components
 │   │   ├── layout/          # Layout components
 │   │   └── motion/          # Animation components
-│   └── lib/                 # Utility libraries
-│       ├── auth.ts          # NextAuth configuration
-│       ├── db.ts            # Database client
-│       └── data.ts          # Sample data (if any)
+│   ├── lib/                 # Utility libraries
+│   │   ├── auth.ts          # NextAuth configuration
+│   │   ├── db.ts            # Database client
+│   │   ├── leaveBalance.ts  # Leave balance calculations
+│   │   └── validation.ts    # Form validation
+│   └── middleware.ts        # Route protection middleware
 ├── public/                  # Static assets
 ├── tailwind.config.ts       # Tailwind configuration
 ├── next.config.mjs         # Next.js configuration
@@ -296,168 +292,91 @@ FS-2-Student-Staff-Portal/
 
 ---
 
-## 🎮 Usage Guide
+## 🔌 API Endpoints
 
-### For Students
+### Public Endpoints (No Authentication Required)
 
-#### 1. First Time Access
-1. Visit the admission enquiry page (public)
-2. Fill out the admission form
-3. Receive a reference number for tracking
-
-#### 2. Regular Usage
-1. **Login**: Use your school email and roll number as password
-2. **Dashboard**: View your activity summary and quick links
-3. **Fees**: Check your payment status and outstanding balances
-4. **Leave Requests**: Submit leave requests (integrates with FS-1 approval system)
-5. **Announcements**: Stay updated with school news and events
-
-#### 3. Mobile Usage
-- Fully responsive design optimized for mobile devices
-- Touch-friendly buttons (minimum 44px)
-- Swipe gestures for navigation
-- Offline-capable static content
-
-### For Administrators
-
-#### Database Management
-```bash
-# View current data
-npx prisma studio
-
-# Reset and reseed database
-npx prisma db push --force-reset
-npx prisma db seed
+#### Admission Enquiry
 ```
-
-#### User Management
-- Students authenticate using email + roll number
-- All dashboard routes are protected
-- Session management via NextAuth.js
-
----
-
-## 🔧 Development Commands
-
-```bash
-# Development
-npm run dev              # Start development server
-npm run build           # Build for production
-npm run start           # Start production server
-npm run lint            # Run ESLint
-
-# Database
-npx prisma studio       # Open Prisma Studio (database GUI)
-npx prisma generate     # Generate Prisma client
-npx prisma db push      # Push schema changes to database
-npx prisma db seed      # Seed database with sample data
-npx prisma migrate dev  # Create and apply migrations
-
-# Testing
-npm run build           # Test production build
-# Open http://localhost:3000 in browser for manual testing
+POST /api/admissions
 ```
+- **Purpose**: Submit new student admission enquiry
+- **Body**: `{ studentName, parentName, email?, phone, grade, startDate, message? }`
 
----
-
-## 🚀 Deployment
-
-### For Production Deployment
-
-1. **Environment Variables**:
-   ```env
-   DATABASE_URL="mysql://prod-user:prod-pass@prod-host:3306/kalnet_fs2"
-   NEXTAUTH_SECRET="your-production-secret"
-   NEXTAUTH_URL="https://your-domain.com"
-   ```
-
-2. **Build and Deploy**:
-   ```bash
-   npm run build
-   npm run start
-   ```
-
-3. **Recommended Platforms**:
-   - **Vercel**: Easiest for Next.js (automatic deployments)
-   - **Railway**: Full-stack with database
-   - **AWS**: EC2 + RDS for custom infrastructure
-
-### Mobile Testing
-- Test on real devices using Chrome DevTools Device Mode
-- Minimum supported width: 375px (iPhone SE)
-- All interactive elements: minimum 44px touch targets
-
----
-
-## 🔗 Integration Points
-
-### FS-1 System Integration
-- **Leave Requests**: POST to FS-1 `/api/approvals` for approval chain
-- **Shared Users Table**: Students table shared between FS-1 and FS-2
-- **Authentication**: Unified login system across KALNET systems
-
-### External Services
-- **Payment Gateway**: Ready for integration (Stripe/Razorpay)
-- **Email Service**: For notifications (SendGrid/Mailgun)
-- **SMS Service**: For alerts (Twilio/AWS SNS)
-
----
-
-## 📖 Documentation
-
-### Student Guide
-Located at `/docs/student-guide.md` - Plain English guide for students using the portal for the first time.
-
-### API Documentation
-- All API endpoints documented above
-- Request/response examples provided
-- Error handling documented
-
-### Development Guide
-- Component library usage
-- Styling guidelines (KALNET colors)
-- Database schema documentation
-
----
-
-## 🤝 Contributing
-
-### Development Workflow
-1. **Branching**: Create feature branches from `main`
-2. **Commits**: Use descriptive commit messages
-3. **Pull Requests**: Required for all changes
-4. **Code Review**: All PRs reviewed by Team Lead
-5. **Testing**: Manual testing required before merge
-
-### Code Standards
-- **TypeScript**: Strict type checking enabled
-- **ESLint**: All linting rules must pass
-- **Prettier**: Code formatting consistency
-- **Component Naming**: PascalCase for components
-- **File Naming**: kebab-case for files
-
-### Daily Standup Format
-Send to Team Lead by 9:30 AM daily:
+#### Announcements
 ```
-Done: [what you completed yesterday]
-Doing: [what you are working on today]
-Blocked: [anything stopping you — write NONE if nothing]
+GET /api/announcements
+GET /api/announcements?category=Events
+GET /api/announcements/[id]
 ```
+- **Purpose**: Fetch announcements with optional category filtering
+
+### Protected Endpoints (Authentication Required)
+
+#### Student Fees Management
+```
+GET /api/fees
+GET /api/fees/[studentId]
+```
+- **Purpose**: Get fee records for current user
+
+#### Student Leave Requests
+```
+GET /api/leave
+POST /api/leave
+GET /api/leave/balance
+PATCH /api/leave/[id]
+DELETE /api/leave/[id]
+```
+- **Purpose**: Manage student leave requests
+- **POST Body**: `{ type, from, to, reason }`
+
+#### Staff Leave Requests
+```
+GET /api/staff/leave
+POST /api/staff/leave/request
+GET /api/staff/leave/balance
+```
+- **Purpose**: Manage staff leave requests
+
+#### Staff Students Management
+```
+GET /api/staff/students
+```
+- **Purpose**: Get all students in staff's assigned class with leave balance
+
+#### Staff Fees Management
+```
+GET /api/staff/fees
+```
+- **Purpose**: Get fee status for all students in staff's assigned class
 
 ---
 
-## 📄 License
+## 🐛 Known Issues & Recent Fixes
 
-**Confidential** - KALNET Internal Project
-April 2026 - All Rights Reserved
+### Latest Fixes (May 2026)
+- ✅ Fixed 405 error on staff leave request endpoint
+- ✅ Fixed leave balance calculation for leaves spanning month boundaries
+- ✅ Fixed UI not updating after leave submission
+- ✅ Fixed inconsistent day calculation between student and staff portals
+- ✅ Fixed edge cases with zero leaves remaining
+- ✅ Removed middle buttons from staff dashboard (consolidated into sidebar)
+- ✅ Separated "My Leaves" (staff's own) from "Student Leaves" (to manage)
+
+### Edge Cases Handled
+- ✅ Zero leaves remaining (shows 0, not negative)
+- ✅ Leaves spanning month/year boundaries
+- ✅ Pending vs approved leaves counted separately
+- ✅ Overlapping leave requests prevented
+- ✅ Monthly and yearly limits enforced
+- ✅ Real-time balance updates after form submission
 
 ---
 
 ## 🆘 Troubleshooting
 
-### Common Issues
-
-#### Database Connection Issues
+### Database Connection Issues
 ```bash
 # Check MySQL service
 sudo service mysql status
@@ -470,12 +389,13 @@ npx prisma db push --force-reset
 npx prisma db seed
 ```
 
-#### Authentication Issues
+### Authentication Issues
 - Check `NEXTAUTH_SECRET` in `.env.local`
 - Verify `NEXTAUTH_URL` matches your domain
 - Clear browser cookies and try again
+- Ensure user role is correct (STUDENT, CLASS_TEACHER, or HOD)
 
-#### Build Issues
+### Build Issues
 ```bash
 # Clear cache
 rm -rf .next node_modules
@@ -483,12 +403,17 @@ npm install
 npm run build
 ```
 
-#### Port Already in Use
+### Port Already in Use
 ```bash
 # Kill process on port 3000
 npx kill-port 3000
 npm run dev
 ```
+
+### Leave Balance Not Updating
+- Refresh the page after submitting a leave request
+- Check that the leave request was successfully created
+- Verify the leave status is PENDING or APPROVED
 
 ---
 
@@ -502,4 +427,21 @@ For technical support or questions:
 
 ---
 
+## 🎯 Quick Start Checklist
+
+- [ ] Node.js 18+ installed
+- [ ] MySQL 8.0+ installed and running
+- [ ] Repository cloned
+- [ ] Dependencies installed (`npm install`)
+- [ ] `.env.local` file created with database credentials
+- [ ] Database migrations run (`npx prisma db push`)
+- [ ] Database seeded (`npx prisma db seed`)
+- [ ] Development server started (`npm run dev`)
+- [ ] Application accessible at `http://localhost:3000`
+- [ ] Can login with test credentials
+- [ ] Can navigate between student and staff portals
+
+---
+
 **KALNET · FS-2 Student & Staff Portal · April 2026 · System 1**
+**Last Updated**: May 2026 - Latest fixes and features included

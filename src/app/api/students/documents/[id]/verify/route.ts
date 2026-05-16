@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: Promise<{ docId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,15 +14,14 @@ export async function PATCH(
     }
 
     const user = session.user as any;
-
+    
     // Only HOD can verify documents
     if (user.role !== "HOD") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const docId = parseInt((await params).docId);
-    const body = await req.json();
-    const { status, rejectionReason } = body;
+    const documentId = parseInt((await params).id);
+    const { status, rejectionReason } = await req.json();
 
     if (!status || !["VERIFIED", "REJECTED"].includes(status)) {
       return NextResponse.json(
@@ -31,17 +30,36 @@ export async function PATCH(
       );
     }
 
-    const document = await db.studentDocument.update({
-      where: { id: docId },
+    // Find the document
+    const document = await db.studentDocument.findUnique({
+      where: { id: documentId },
+      include: { student: true },
+    });
+
+    if (!document) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    // Update document status
+    const updated = await db.studentDocument.update({
+      where: { id: documentId },
       data: {
         status,
-        verifiedBy: parseInt(user.id),
+        verifiedBy: user.id,
         verifiedAt: new Date(),
         rejectionReason: status === "REJECTED" ? rejectionReason : null,
       },
+      include: { student: true },
     });
 
-    return NextResponse.json(document);
+    return NextResponse.json({
+      success: true,
+      document: updated,
+      message: `Document ${status.toLowerCase()} successfully`,
+    });
   } catch (error) {
     console.error("Document Verification Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

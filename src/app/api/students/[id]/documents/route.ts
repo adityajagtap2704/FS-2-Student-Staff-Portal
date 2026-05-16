@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { uploadToS3, extractS3KeyFromUrl, deleteFromS3 } from "@/lib/aws-s3";
 
 export async function GET(
   req: Request,
@@ -72,7 +73,13 @@ export async function POST(
     }
 
     // Validate file type
-    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+    const allowedTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         { error: "Invalid file type. Allowed: PDF, JPG, PNG, DOC, DOCX" },
@@ -80,35 +87,106 @@ export async function POST(
       );
     }
 
-    // Convert file to base64 for storage
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const base64Data = buffer.toString("base64");
+    try {
+      // Upload file to AWS S3
+      const s3Url = await uploadToS3(
+        file,
+        `documents/students/${studentId}`,
+        `${documentType}_${Date.now()}`
+      );
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const fileExtension = file.name.split(".").pop();
-    const fileName = `${documentType}_${timestamp}.${fileExtension}`;
+      // Create document record in database with S3 key
+      const document = await db.studentDocument.create({
+        data: {
+          studentId,
+          documentType,
+          fileName: file.name,
+          fileUrl: s3Url, // Store S3 key, not full URL
+          fileSize: file.size,
+          status: "PENDING",
+        },
+      });
 
-    // Create document record in database with base64 encoded file
-    const document = await db.studentDocument.create({
-      data: {
-        studentId,
-        documentType,
-        fileName: file.name,
-        fileUrl: `data:${file.type};base64,${base64Data}`, // Store as data URL
-        fileSize: file.size,
-        status: "PENDING",
-      },
+      return NextResponse.json({
+        success: true,
+        document,
+        message: "Document uploaded successfully to AWS S3",
+      });
+    } catch (s3Error) {
+      console.error("S3 Upload Error:", s3Error);
+      return NextResponse.json(
+        { error: "Failed to upload document to cloud storage" },
+        { status: 500 }
+      );
+    }
+  } catch (error) {
+    console.error("Student Documents POST Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+/**
+ * DELETE endpoint to remove a document
+ */
+export async function DELETE(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = session.user as any;
+    const studentId = parseInt((await params).id);
+
+    // Only students can delete their own documents
+    if (user.role !== "STUDENT" || parseInt(user.id) !== studentId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { documentId } = await req.json();
+
+    if (!documentId) {
+      return NextResponse.json(
+        { error: "Missing documentId" },
+        { status: 400 }
+      );
+    }
+
+    // Find the document
+    const document = await db.studentDocument.findUnique({
+      where: { id: documentId },
+    });
+
+    if (!document || document.studentId !== studentId) {
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    try {
+      // Delete from S3
+      const s3Key = extractS3KeyFromUrl(document.fileUrl);
+      await deleteFromS3(s3Key);
+    } catch (s3Error) {
+      console.error("S3 Delete Error:", s3Error);
+      // Continue with database deletion even if S3 deletion fails
+    }
+
+    // Delete from database
+    await db.studentDocument.delete({
+      where: { id: documentId },
     });
 
     return NextResponse.json({
       success: true,
-      document,
-      message: "Document uploaded successfully",
+      message: "Document deleted successfully",
     });
   } catch (error) {
-    console.error("Student Documents POST Error:", error);
+    console.error("Student Documents DELETE Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

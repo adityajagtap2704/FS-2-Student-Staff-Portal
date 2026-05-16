@@ -25,7 +25,11 @@ const studentLinks = [
 
 const teacherLinks = [
   { href: "/dashboard/staff",         label: "My Dashboard",  icon: LayoutDashboard, exact: true  },
-  { href: "/dashboard/leave/balance", label: "Leave Balance", icon: CalendarOff,     exact: false },
+  { href: "/dashboard/staff/my-leaves", label: "My Leaves",    icon: CalendarOff,     exact: false },
+  { href: "/dashboard/staff/leaves",  label: "Student Leaves", icon: CalendarOff,     exact: false },
+  { href: "/dashboard/staff/students", label: "My Students",  icon: Users,           exact: false },
+  { href: "/dashboard/staff/fees",    label: "Fees",          icon: CreditCard,      exact: false },
+  { href: "/dashboard/staff/payments", label: "Payments",     icon: CreditCard,      exact: false },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone,       exact: false },
 ];
 

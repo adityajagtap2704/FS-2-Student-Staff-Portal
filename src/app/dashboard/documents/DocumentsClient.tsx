@@ -50,9 +50,13 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
       const res = await fetch(`/api/students/${studentId}/documents`);
       if (!res.ok) throw new Error("Failed to load documents");
       const data = await res.json();
-      setDocuments(data);
+      // Sort by uploadedAt descending (newest first)
+      const sorted = data.sort((a: Document, b: Document) => 
+        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+      );
+      setDocuments(sorted);
     } catch (error) {
-      toast.error("Documents", "Failed to load documents");
+      toast.error("Failed to load documents", "Please refresh the page");
       console.error(error);
     } finally {
       setLoading(false);
@@ -76,7 +80,7 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
 
   const handleUpload = async () => {
     if (!selectedType || !selectedFile) {
-      toast.error("Validation", "Please select document type and file");
+      toast.error("Validation Error", "Please select document type and file");
       return;
     }
 
@@ -98,13 +102,24 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
         throw new Error(error.error || "Upload failed");
       }
 
-      toast.success("Document uploaded", "Your document has been uploaded successfully");
+      const result = await res.json();
+      
+      // Show success alert with document details
+      toast.success(
+        `${selectedType} Uploaded`,
+        `Document "${selectedFile.name}" has been uploaded successfully and is pending verification.`
+      );
+      
       setShowUploadModal(false);
       setSelectedType("");
       setSelectedFile(null);
       await loadDocuments();
     } catch (error) {
-      toast.error("Upload failed", error instanceof Error ? error.message : "Please try again");
+      const errorMsg = error instanceof Error ? error.message : "Please try again";
+      toast.error(
+        "Upload Failed",
+        `${selectedType}: ${errorMsg}`
+      );
       console.error(error);
     } finally {
       setUploading(false);
@@ -317,15 +332,27 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <motion.a
-                            href={doc.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <motion.button
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(`/api/students/documents/${doc.id}/signed-url`);
+                                if (res.ok) {
+                                  const data = await res.json();
+                                  window.open(data.signedUrl, "_blank");
+                                } else {
+                                  const error = await res.json();
+                                  toast.error("Error", error.error || "Failed to generate download link");
+                                }
+                              } catch (error) {
+                                toast.error("Error", "Failed to generate download link");
+                              }
+                            }}
                             className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary-600 transition-colors"
                             whileHover={{ scale: 1.05 }}
+                            title="Download document"
                           >
                             <Download size={12} />
-                          </motion.a>
+                          </motion.button>
                           {doc.status === "REJECTED" && (
                             <motion.button
                               onClick={() => handleDelete(doc.id)}
