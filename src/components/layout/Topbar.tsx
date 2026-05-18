@@ -1,9 +1,10 @@
 "use client";
 
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Menu, Bell, Search, LogOut, X, Trash2 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Session } from "next-auth";
-import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useToast } from "./../../components/ui/Toast";
@@ -18,12 +19,119 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
   const [signingOut,   setSigningOut]   = useState(false);
   const [scrolled,     setScrolled]     = useState(false);
   const [showNotif,    setShowNotif]    = useState(false);
+  const [searchOpen,   setSearchOpen]   = useState(false);
+  const [searchQuery,  setSearchQuery]  = useState("");
+  const [activeIndex,  setActiveIndex]  = useState(0);
   const [unreadCount,  setUnreadCount]  = useState(0);
   const [notifications,setNotifications]= useState<any[]>([]);
   const toast = useToast();
+  const router = useRouter();
 
   const user = session?.user as any;
-  const isStudent = user?.role === "STUDENT" || !user?.role;
+  const role = user?.role ?? "STUDENT";
+  const isStudent = role === "STUDENT" || !user?.role;
+
+  const searchItems = useMemo(() => {
+    const allItems = [
+      { href: "/dashboard", label: "Dashboard", keywords: ["home", "overview", "main"] },
+      { href: "/dashboard/fees", label: "Fees", keywords: ["fee", "invoice", "dues"] },
+      { href: "/dashboard/payments", label: "Payments", keywords: ["payment", "receipt", "transactions"] },
+      { href: "/dashboard/documents", label: "Documents", keywords: ["document", "file", "upload", "download"] },
+      { href: "/dashboard/timetable", label: "Timetable", keywords: ["schedule", "class", "period", "time"] },
+      { href: "/dashboard/leave", label: "Leave", keywords: ["leave", "absence", "request", "time off"] },
+      { href: "/dashboard/announcements", label: "Announcements", keywords: ["announcement", "notice", "news"] },
+      { href: "/dashboard/profile", label: "My Profile", keywords: ["profile", "account", "details"] },
+      { href: "/dashboard/staff", label: "Staff Dashboard", keywords: ["staff dashboard", "my dashboard"] },
+      { href: "/dashboard/staff/timetable", label: "Staff Timetable", keywords: ["schedule", "class"] },
+      { href: "/dashboard/staff/my-leaves", label: "My Leaves", keywords: ["my leaves", "leave request"] },
+      { href: "/dashboard/staff/leaves", label: "Student Leaves", keywords: ["student leave", "leave requests"] },
+      { href: "/dashboard/staff/students", label: "My Students", keywords: ["students", "class", "pupils"] },
+      { href: "/dashboard/staff/payments", label: "Staff Payments", keywords: ["staff payments", "transactions"] },
+      { href: "/dashboard/hod", label: "HOD Dashboard", keywords: ["hod dashboard", "admin"] },
+      { href: "/dashboard/hod/timetable", label: "HOD Timetable", keywords: ["schedule", "timetable"] },
+      { href: "/dashboard/hod/class-assignments", label: "Class Assignments", keywords: ["assignments", "classes"] },
+      { href: "/dashboard/hod/outstanding-payments", label: "Outstanding Fees", keywords: ["outstanding", "fees"] },
+      { href: "/dashboard/hod/documents", label: "Document Verification", keywords: ["document verification", "documents"] },
+      { href: "/dashboard/hod/email-logs", label: "Email Logs", keywords: ["email", "logs"] },
+      { href: "/dashboard/hod/payment-logs", label: "Payment Logs", keywords: ["payment logs", "transactions"] },
+      { href: "/dashboard/hod/audit-logs", label: "Audit Logs", keywords: ["audit", "log"] },
+    ];
+
+    if (role === "HOD") {
+      return allItems.filter((item) => item.href.startsWith("/dashboard/hod") || item.href === "/dashboard" || item.href === "/dashboard/announcements");
+    }
+
+    if (role === "CLASS_TEACHER") {
+      return allItems.filter((item) => item.href.startsWith("/dashboard/staff") || item.href === "/dashboard" || item.href === "/dashboard/announcements");
+    }
+
+    return allItems.filter((item) => !item.href.startsWith("/dashboard/staff") && !item.href.startsWith("/dashboard/hod"));
+  }, [role]);
+
+  const filteredSearchItems = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return searchItems;
+
+    return searchItems.filter((item) => {
+      return (
+        item.label.toLowerCase().includes(query) ||
+        item.keywords.some((keyword) => keyword.includes(query))
+      );
+    });
+  }, [searchItems, searchQuery]);
+
+  const openSearch = () => {
+    setSearchOpen(true);
+    setTimeout(() => document?.getElementById("dashboard-search-input")?.focus(), 10);
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchQuery("");
+    setActiveIndex(0);
+  };
+
+  const navigateTo = useCallback((href: string) => {
+    closeSearch();
+    router.push(href);
+  }, [router]);
+
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+      if ((event.metaKey || event.ctrlKey) && key === "k") {
+        event.preventDefault();
+        openSearch();
+      }
+
+      if (key === "escape" && searchOpen) {
+        event.preventDefault();
+        closeSearch();
+      }
+
+      if (searchOpen && (key === "arrowdown" || key === "arrowup" || key === "enter")) {
+        event.preventDefault();
+        const maxIndex = filteredSearchItems.length - 1;
+        if (key === "arrowdown" && maxIndex >= 0) {
+          setActiveIndex((prev) => Math.min(prev + 1, maxIndex));
+        }
+        if (key === "arrowup" && maxIndex >= 0) {
+          setActiveIndex((prev) => Math.max(prev - 1, 0));
+        }
+        if (key === "enter" && filteredSearchItems[activeIndex]) {
+          navigateTo(filteredSearchItems[activeIndex].href);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [searchOpen, filteredSearchItems, activeIndex, navigateTo]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    setActiveIndex(0);
+  }, [searchOpen, searchQuery, filteredSearchItems.length]);
 
   useEffect(() => {
     const el = document.querySelector("main");
@@ -114,6 +222,7 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
       <div className="flex items-center gap-2">
         {/* Search */}
         <motion.button
+          onClick={openSearch}
           className="hidden md:flex items-center gap-2 h-9 px-3 rounded-xl border border-gray-200 text-xs text-gray-400 hover:border-gray-300 hover:bg-gray-50 transition-all duration-150 group"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -122,6 +231,69 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
           <span>Search...</span>
           <kbd className="ml-1 px-1.5 py-0.5 text-[10px] bg-gray-100 rounded font-mono">⌘K</kbd>
         </motion.button>
+
+        <AnimatePresence>
+          {searchOpen && (
+            <>
+              <motion.div
+                className="fixed inset-0 z-40 bg-black/10"
+                onClick={closeSearch}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+              <div className="fixed inset-0 z-50 flex items-start justify-center pt-[12vh] pointer-events-none">
+                <motion.div
+                  initial={{ opacity: 0, y: -16, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -16, scale: 0.98 }}
+                  transition={{ duration: 0.18 }}
+                  className="pointer-events-auto w-[min(24rem,calc(100%-2rem))] flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
+                >
+                  <div className="p-4 border-b border-gray-100 shrink-0 bg-white/50 backdrop-blur-md">
+                    <div className="relative">
+                      <Search size={18} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        id="dashboard-search-input"
+                        autoFocus
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-2.5 pl-11 pr-4 text-sm text-gray-900 outline-none transition focus:border-primary focus:bg-white focus:shadow-sm"
+                        placeholder="Search..."
+                        aria-label="Search dashboard pages"
+                      />
+                    </div>
+                  </div>
+                  <div className="overflow-y-auto p-2 max-h-[128px]">
+                    {filteredSearchItems.length > 0 ? (
+                      <ul className="space-y-1">
+                        {filteredSearchItems.map((item, index) => (
+                          <li key={item.href}>
+                            <button
+                              type="button"
+                              onClick={() => navigateTo(item.href)}
+                              onMouseEnter={() => setActiveIndex(index)}
+                              className={`${index === activeIndex ? "bg-primary/10 text-primary" : "bg-white text-gray-700"} w-full text-left px-3 py-2 rounded-xl transition-colors hover:bg-gray-50 flex items-center justify-between group`}
+                            >
+                              <div className="text-sm font-medium">{item.label}</div>
+                              <div className={`text-[10px] tracking-wide uppercase ${index === activeIndex ? "text-primary/70" : "text-gray-400 group-hover:text-gray-500"}`}>
+                                {item.href.replace("/dashboard", "").replace("/staff", "staff ").replace("/hod", "hod ") || "Dashboard"}
+                              </div>
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="p-4 text-center text-sm text-gray-500">
+                        <p>No matching pages found.</p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Notifications */}
         <div className="relative">

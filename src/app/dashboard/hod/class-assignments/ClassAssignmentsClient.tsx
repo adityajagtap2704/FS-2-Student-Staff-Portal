@@ -19,6 +19,10 @@ interface StaffMember {
   approvalStatus: string;
   studentCount: number;
   pendingLeaveCount: number;
+  isOnLeave?: boolean;
+  substituteId?: number | null;
+  substituteName?: string | null;
+  isFreeRightNow?: boolean;
 }
 
 export default function ClassAssignmentsClient() {
@@ -28,7 +32,9 @@ export default function ClassAssignmentsClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "APPROVED" | "PENDING">("ALL");
   const [filterClass, setFilterClass] = useState<"ALL" | string>("ALL");
-  const { error: showError } = useToast();
+  const [selectedSubstitutes, setSelectedSubstitutes] = useState<Record<number, string>>({});
+  const [assigningSubId, setAssigningSubId] = useState<number | null>(null);
+  const { error: showError, success: showSuccess } = useToast();
 
   // Fetch staff
   useEffect(() => {
@@ -53,6 +59,88 @@ export default function ClassAssignmentsClient() {
 
     fetchStaff();
   }, [showError]);
+
+  const handleAssignSubstitute = async (absentStaffId: number, classEnrolled: string) => {
+    const substituteStaffId = selectedSubstitutes[absentStaffId];
+    if (!substituteStaffId) {
+      showError("Please select a substitute staff member");
+      return;
+    }
+
+    try {
+      setAssigningSubId(absentStaffId);
+      const res = await fetch("/api/hod/substitute-assignments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          absentStaffId,
+          substituteStaffId: parseInt(substituteStaffId),
+          classEnrolled,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to assign substitute");
+      }
+
+      if (showSuccess) {
+        showSuccess("Substitute assigned successfully");
+      } else {
+        alert("Substitute assigned successfully");
+      }
+      
+      // Update local state instead of refetching everything to be faster
+      const substitute = staff.find(s => s.id === parseInt(substituteStaffId));
+      if (substitute) {
+        setStaff(prev => prev.map(s => 
+          s.id === absentStaffId 
+            ? { ...s, substituteId: substitute.id, substituteName: substitute.name }
+            : s
+        ));
+      }
+      
+    } catch (err: any) {
+      console.error("Error assigning substitute:", err);
+      showError(err.message || "Failed to assign substitute");
+    } finally {
+      setAssigningSubId(null);
+    }
+  };
+
+  const handleRemoveSubstitute = async (absentStaffId: number) => {
+    try {
+      setAssigningSubId(absentStaffId);
+      const res = await fetch(`/api/hod/substitute-assignments?absentStaffId=${absentStaffId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "Failed to remove substitute");
+      }
+
+      if (showSuccess) {
+        showSuccess("Substitute removed successfully");
+      } else {
+        alert("Substitute removed successfully");
+      }
+      
+      setStaff(prev => prev.map(s => 
+        s.id === absentStaffId 
+          ? { ...s, substituteId: null, substituteName: null }
+          : s
+      ));
+      
+    } catch (err: any) {
+      console.error("Error removing substitute:", err);
+      showError(err.message || "Failed to remove substitute");
+    } finally {
+      setAssigningSubId(null);
+    }
+  };
 
   // Filter staff
   useEffect(() => {
@@ -87,6 +175,14 @@ export default function ClassAssignmentsClient() {
 
   // Get unique classes
   const classes = Array.from(new Set(staff.filter((s) => s.assignedClass).map((s) => s.assignedClass)));
+  
+  // Available substitutes sorted by availability
+  const availableSubstitutes = staff.filter(s => s.approvalStatus === 'APPROVED' && !s.isOnLeave);
+  const sortedAvailableSubstitutes = [...availableSubstitutes].sort((a, b) => {
+    if (a.isFreeRightNow && !b.isFreeRightNow) return -1;
+    if (!a.isFreeRightNow && b.isFreeRightNow) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   // Calculate stats
   const stats = {
@@ -270,6 +366,63 @@ export default function ClassAssignmentsClient() {
                       {member.assignedClass || "Not Assigned"}
                     </p>
                   </div>
+
+                  {/* Leave & Substitute UI */}
+                  {member.assignedClass && (
+                    <div className={`rounded-lg p-3 mb-3 border ${member.isOnLeave ? 'bg-amber-50 border-amber-100' : 'bg-gray-50 border-gray-200'}`}>
+                      {member.isOnLeave ? (
+                        <div className="flex items-center gap-2 mb-2">
+                          <AlertCircle size={14} className="text-amber-600" />
+                          <span className="text-xs font-semibold text-amber-700">Staff On Leave</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 mb-2">
+                          <Users size={14} className="text-gray-500" />
+                          <span className="text-xs font-semibold text-gray-600">Temporary Cover / Substitute</span>
+                        </div>
+                      )}
+                      
+                      {member.substituteName ? (
+                        <div className="flex items-center justify-between mt-1">
+                          <div>
+                            <p className={`text-xs mb-1 ${member.isOnLeave ? 'text-amber-700/80' : 'text-gray-500'}`}>Substitute Assigned:</p>
+                            <p className={`text-sm font-medium ${member.isOnLeave ? 'text-amber-800' : 'text-gray-700'}`}>{member.substituteName}</p>
+                          </div>
+                          <button
+                            onClick={() => handleRemoveSubstitute(member.id)}
+                            disabled={assigningSubId === member.id}
+                            className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-2 mt-2">
+                          <select 
+                            className={`w-full text-xs p-2 rounded border bg-white focus:outline-none focus:ring-1 ${member.isOnLeave ? 'border-amber-200 focus:ring-amber-500' : 'border-gray-200 focus:ring-blue-500'}`}
+                            value={selectedSubstitutes[member.id] || ""}
+                            onChange={(e) => setSelectedSubstitutes(prev => ({ ...prev, [member.id]: e.target.value }))}
+                          >
+                            <option value="">Select Substitute...</option>
+                            {sortedAvailableSubstitutes.filter(s => s.id !== member.id).map(sub => (
+                              <option key={sub.id} value={sub.id}>
+                                {sub.name} {sub.isFreeRightNow ? "(Free Now)" : ""}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => handleAssignSubstitute(member.id, member.assignedClass!)}
+                            disabled={assigningSubId === member.id || !selectedSubstitutes[member.id]}
+                            className={`w-full py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors font-medium flex items-center justify-center gap-1 ${member.isOnLeave ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-800 hover:bg-gray-900'}`}
+                          >
+                            {assigningSubId === member.id ? (
+                               <div className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                            ) : "Assign Substitute"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Stats */}
                   <div className="grid grid-cols-2 gap-2">

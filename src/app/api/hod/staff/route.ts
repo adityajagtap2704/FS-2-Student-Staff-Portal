@@ -31,6 +31,43 @@ export async function GET(req: Request) {
 
     // Add approval status based on isActive
     // PENDING = not active, APPROVED = active
+    
+    // 1. Calculate current time and day to determine busy staff
+    const now = new Date();
+    // Use local time HH:mm
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const currentTimeString = `${hours}:${minutes}`;
+    
+    // JS getDay(): 0=Sun, 1=Mon, ..., 6=Sat
+    // DB dayOfWeek: 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+    const currentDayOfWeek = now.getDay();
+    
+    // Find active slots
+    const activeSlots = await db.timetableSlot.findMany({
+      where: {
+        startTime: { lte: currentTimeString },
+        endTime: { gte: currentTimeString },
+      }
+    });
+    
+    // Collect staff IDs busy right now
+    const busyStaffIds = new Set<number>();
+    if (activeSlots.length > 0 && currentDayOfWeek >= 1 && currentDayOfWeek <= 6) {
+      const activeSlotIds = activeSlots.map((s: any) => s.id);
+      const busyEntries = await db.timetableEntry.findMany({
+        where: {
+          dayOfWeek: currentDayOfWeek,
+          slotId: { in: activeSlotIds },
+          staffId: { not: null }
+        },
+        select: { staffId: true }
+      });
+      busyEntries.forEach((entry: any) => {
+        if (entry.staffId) busyStaffIds.add(entry.staffId);
+      });
+    }
+
     const staffWithStatus = await Promise.all(
       staff.map(async (s) => {
         let studentCount = 0;
@@ -40,11 +77,57 @@ export async function GET(req: Request) {
           });
         }
 
+        // Check for pending leaves
+        const pendingLeaveCount = await db.leaveRequest.count({
+          where: {
+            staffId: s.id,
+            status: "PENDING",
+          },
+        });
+
+        // Determine if staff is currently on leave (absent)
+        const today = new Date();
+        const activeLeave = await db.leaveRequest.findFirst({
+          where: {
+            staffId: s.id,
+            status: "APPROVED",
+            fromDate: { lte: today },
+            toDate: { gte: today },
+          },
+        });
+
+        const isOnLeave = !!activeLeave || pendingLeaveCount > 0;
+
+        // Check if there is an active substitute assignment for this staff's class
+        let substituteId = null;
+        let substituteName = null;
+
+        if (s.assignedClass) {
+          // Find the most recent substitute assignment for this staff member
+          const subAssignment = await db.substituteAssignment.findFirst({
+            where: { absentStaffId: s.id },
+            orderBy: { assignedAt: 'desc' },
+            include: { substituteStaff: true }
+          });
+          
+          if (subAssignment) {
+            substituteId = subAssignment.substituteStaffId;
+            substituteName = subAssignment.substituteStaff.name;
+          }
+        }
+
+        const isBusyNow = busyStaffIds.has(s.id);
+        const isFreeRightNow = !isOnLeave && !isBusyNow;
+
         return {
           ...s,
           approvalStatus: s.isActive ? "APPROVED" : "PENDING",
           studentCount,
-          pendingLeaveCount: 0, // Placeholder for now
+          pendingLeaveCount,
+          isOnLeave,
+          substituteId,
+          substituteName,
+          isFreeRightNow,
         };
       })
     );

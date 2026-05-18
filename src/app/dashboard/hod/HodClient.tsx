@@ -482,8 +482,7 @@ export default function HodClient({ session }: Props) {
   };
 
   // ── Derived stats ────────────────────────────────────────────────────────
-  const pendingLeaves      = leaves.filter(l => l.status === "PENDING").length;
-  const totalPendingLeaves = pendingLeaves + staffPendingCount;
+  const totalPendingLeaves = staffPendingCount;
   const pendingAdmissions  = admissions.filter(a => a.status === "PENDING").length;
   const filteredAdmissions = admFilter === "ALL" ? admissions : admissions.filter(a => a.status === admFilter);
   const filteredLeaves     = leaveFilter === "ALL" ? leaves : leaves.filter(l => l.status === leaveFilter);
@@ -535,7 +534,7 @@ export default function HodClient({ session }: Props) {
           >
             <Icon size={14} />
             {label}
-            {key === "leave"      && totalPendingLeaves > 0 && <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-amber-400 text-white text-[9px] font-bold flex items-center justify-center">{totalPendingLeaves}</span>}
+            {key === "leave"      && staffPendingCount > 0 && <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-amber-400 text-white text-[9px] font-bold flex items-center justify-center">{staffPendingCount}</span>}
             {key === "admissions" && pendingAdmissions > 0 && <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-blue-400 text-white text-[9px] font-bold flex items-center justify-center">{pendingAdmissions}</span>}
           </button>
         ))}
@@ -562,12 +561,12 @@ export default function HodClient({ session }: Props) {
             />
             <StatCard
               label="Pending Leaves"
-              value={loadingL ? "—" : totalPendingLeaves.toString()}
-              sub={`${pendingLeaves} students · ${staffPendingCount} staff`}
+              value={loadingL ? "—" : staffPendingCount.toString()}
+              sub={`${staffPendingCount} staff requests`}
               icon={<Clock size={18} className="text-amber-500" />}
               iconBg="bg-amber-50"
-              badge={totalPendingLeaves > 0 ? "Action needed" : "All clear"}
-              badgeVariant={totalPendingLeaves > 0 ? "warning" : "success"}
+              badge={staffPendingCount > 0 ? "Action needed" : "All clear"}
+              badgeVariant={staffPendingCount > 0 ? "warning" : "success"}
               delay={0.1}
             />
             <StatCard
@@ -650,136 +649,7 @@ export default function HodClient({ session }: Props) {
       ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === "leave" && (
         <div className="space-y-4">
-
-          {/* ── Sub-tabs: Student / Staff ── */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => setLeaveSubTab("student")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-                leaveSubTab === "student"
-                  ? "bg-primary text-white shadow-glow"
-                  : "bg-white border border-gray-200 text-gray-500 hover:border-primary hover:text-primary"
-              }`}
-            >
-              <Users size={14} />
-              Student Leave
-              {pendingLeaves > 0 && (
-                <span className="h-4 min-w-4 px-1 rounded-full bg-amber-400 text-white text-[9px] font-bold flex items-center justify-center">
-                  {pendingLeaves}
-                </span>
-              )}
-            </button>
-            <button
-              onClick={() => setLeaveSubTab("staff")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-                leaveSubTab === "staff"
-                  ? "bg-primary text-white shadow-glow"
-                  : "bg-white border border-gray-200 text-gray-500 hover:border-primary hover:text-primary"
-              }`}
-            >
-              <CheckCircle2 size={14} />
-              Staff Leave
-              {staffPendingCount > 0 && (
-                <span className="h-4 min-w-4 px-1 rounded-full bg-amber-400 text-white text-[9px] font-bold flex items-center justify-center">
-                  {staffPendingCount}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* ── Student Leave ── */}
-          {leaveSubTab === "student" && (
-            <Card title="Student Leave Requests" subtitle="Across all classes" noPadding delay={0.1}>
-              {/* Filter bar */}
-              <div className="flex items-center gap-2 px-4 pt-4 pb-2 flex-wrap">
-                {(["PENDING","ALL","APPROVED","REJECTED"] as const).map(f => (
-                  <button
-                    key={f}
-                    onClick={() => { setLeaveFilter(f); setLeavePage(1); }}
-                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
-                      leaveFilter === f ? "bg-primary text-white" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                    }`}
-                  >
-                    {f}
-                    {f === "PENDING" && pendingLeaves > 0 && (
-                      <span className="ml-1.5 bg-amber-400 text-white text-[9px] font-bold px-1 py-0.5 rounded-full">{pendingLeaves}</span>
-                    )}
-                    {f !== "PENDING" && (
-                      <span className="ml-1 opacity-60">({f === "ALL" ? leaves.length : leaves.filter(l => l.status === f).length})</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {loadingL ? <SkeletonTable rows={5} /> : (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-50">
-                          {["Student", "Class", "Type", "From", "To", "Days", "Monthly Left", "Yearly Left", "Status", "Action"].map(h => (
-                            <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50">
-                        {paginatedLeaves.map((lr) => {
-                          const days = Math.ceil((new Date(lr.toDate).getTime() - new Date(lr.fromDate).getTime()) / 86400000) + 1;
-                          const isPending = lr.status === "PENDING";
-                          return (
-                            <tr key={lr.id} className={`hover:bg-gray-50/50 transition-colors ${isPending ? "bg-amber-50/30" : ""}`}>
-                              <td className="px-4 py-3 font-medium text-[#444] whitespace-nowrap">{lr.student?.name ?? "—"}</td>
-                              <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{lr.student?.classEnrolled ?? "—"}</td>
-                              <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{lr.leaveType}</td>
-                              <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{new Date(lr.fromDate).toLocaleDateString()}</td>
-                              <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{new Date(lr.toDate).toLocaleDateString()}</td>
-                              <td className="px-4 py-3 text-gray-400">{days}d</td>
-                              <td className={`px-4 py-3 font-semibold ${leaveColor(lr.leaveBalance?.monthlyRemaining ?? 2, lr.leaveBalance?.monthlyLimit ?? 2)}`}>
-                                {lr.leaveBalance?.monthlyRemaining ?? "—"}/{lr.leaveBalance?.monthlyLimit ?? 2}
-                              </td>
-                              <td className={`px-4 py-3 font-semibold ${leaveColor(lr.leaveBalance?.yearlyRemaining ?? 10, lr.leaveBalance?.yearlyLimit ?? 10)}`}>
-                                {lr.leaveBalance?.yearlyRemaining ?? "—"}/{lr.leaveBalance?.yearlyLimit ?? 10}
-                              </td>
-                              <td className="px-4 py-3">
-                                <Badge variant={lr.status === "APPROVED" ? "success" : lr.status === "REJECTED" ? "danger" : "warning"} dot>
-                                  {lr.status.charAt(0) + lr.status.slice(1).toLowerCase()}
-                                </Badge>
-                              </td>
-                              <td className="px-4 py-3">
-                                {isPending ? (
-                                  <div className="flex items-center gap-1.5">
-                                    <Button size="xs" variant="secondary" onClick={() => handleLeaveAction(lr.id, "APPROVED")}>Approve</Button>
-                                    <Button size="xs" variant="danger"    onClick={() => handleLeaveAction(lr.id, "REJECTED")}>Reject</Button>
-                                  </div>
-                                ) : <span className="text-xs text-gray-300">Done</span>}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                        {paginatedLeaves.length === 0 && (
-                          <tr><td colSpan={10} className="px-4 py-8 text-center text-gray-400">No leave requests found.</td></tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  {leaveTotalPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-50">
-                      <p className="text-xs text-gray-400">{filteredLeaves.length} total · Page {leavePage} of {leaveTotalPages}</p>
-                      <div className="flex gap-1.5">
-                        <button onClick={() => setLeavePage(p => Math.max(1, p - 1))} disabled={leavePage === 1}
-                          className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-500 disabled:opacity-40 hover:bg-gray-200 transition-colors">Prev</button>
-                        <button onClick={() => setLeavePage(p => Math.min(leaveTotalPages, p + 1))} disabled={leavePage === leaveTotalPages}
-                          className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-500 disabled:opacity-40 hover:bg-gray-200 transition-colors">Next</button>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-            </Card>
-          )}
-
-          {/* ── Staff Leave ── */}
-          {leaveSubTab === "staff" && <StaffLeaveSection />}
+          <StaffLeaveSection />
         </div>
       )}
 

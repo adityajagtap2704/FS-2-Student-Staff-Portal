@@ -23,7 +23,7 @@ export default function StudentLeavesClient({ session }: Props) {
   const [leaveFilter, setLeaveFilter] = useState<"PENDING" | "ALL" | "APPROVED" | "REJECTED">("PENDING");
 
   useEffect(() => {
-    fetch("/api/staff/leave")
+    fetch("/api/staff/student-leaves")
       .then(r => r.json()).then(d => { setLeaves(Array.isArray(d) ? d : []); setLoadingL(false); })
       .catch(() => setLoadingL(false));
   }, []);

@@ -7,7 +7,7 @@ import {
   LayoutDashboard, CreditCard, CalendarOff,
   Megaphone, UserCircle, X, GraduationCap,
   ChevronRight, ChevronLeft, Users, BookOpen,
-  Bell, FileText,
+  Bell, FileText, TableProperties,
 } from "lucide-react";
 import { useState } from "react";
 import { Session } from "next-auth";
@@ -18,6 +18,7 @@ const studentLinks = [
   { href: "/dashboard/fees",          label: "Fees",          icon: CreditCard,      exact: false },
   { href: "/dashboard/payments",      label: "Payments",      icon: CreditCard,      exact: false },
   { href: "/dashboard/documents",     label: "Documents",     icon: FileText,        exact: false },
+  { href: "/dashboard/timetable",     label: "Timetable",     icon: TableProperties, exact: false },
   { href: "/dashboard/leave",         label: "Leave",         icon: CalendarOff,     exact: false },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone,       exact: false },
   { href: "/dashboard/profile",       label: "My Profile",    icon: UserCircle,      exact: false },
@@ -25,16 +26,18 @@ const studentLinks = [
 
 const teacherLinks = [
   { href: "/dashboard/staff",         label: "My Dashboard",  icon: LayoutDashboard, exact: true  },
-  { href: "/dashboard/staff/my-leaves", label: "My Leaves",    icon: CalendarOff,     exact: false },
-  { href: "/dashboard/staff/leaves",  label: "Student Leaves", icon: CalendarOff,     exact: false },
-  { href: "/dashboard/staff/students", label: "My Students",  icon: Users,           exact: false },
+  { href: "/dashboard/staff/timetable", label: "Timetable",   icon: TableProperties, exact: false },
+  { href: "/dashboard/staff/my-leaves", label: "My Leaves",   icon: CalendarOff,     exact: false },
+  { href: "/dashboard/staff/leaves",  label: "Student Leaves", icon: CalendarOff,    exact: false },
+  { href: "/dashboard/staff/students", label: "My Students", icon: Users,            exact: false },
   { href: "/dashboard/staff/fees",    label: "Fees",          icon: CreditCard,      exact: false },
-  { href: "/dashboard/staff/payments", label: "Payments",     icon: CreditCard,      exact: false },
+  { href: "/dashboard/staff/payments", label: "Payments",    icon: CreditCard,       exact: false },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone,       exact: false },
 ];
 
 const hodLinks = [
   { href: "/dashboard/hod",           label: "HOD Dashboard", icon: LayoutDashboard, exact: true  },
+  { href: "/dashboard/hod/timetable", label: "Timetable",     icon: TableProperties, exact: false },
   { href: "/dashboard/hod/class-assignments", label: "Class Assignments", icon: Users, exact: false },
   { href: "/dashboard/hod/outstanding-payments", label: "Outstanding Fees", icon: CreditCard, exact: false },
   { href: "/dashboard/hod/documents", label: "Document Verification", icon: FileText, exact: false },

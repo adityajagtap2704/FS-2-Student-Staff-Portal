@@ -117,6 +117,8 @@ model Staff {
   leaveRequests     LeaveRequest[]
   classAssignments  ClassAssignment[]
   staffLeaveBalance StaffLeaveBalance?
+  absentAssignments     SubstituteAssignment[] @relation("AbsentStaff")
+  substituteAssignments SubstituteAssignment[] @relation("SubstituteStaff")
 
   @@map("staff")
 }
@@ -394,4 +396,101 @@ model StaffLeaveBalance {
   @@map("staff_leave_balance")
   @@unique([staffId, year])
   @@index([year])
+}
+
+// ─── Timetable Models ─────────────────────────────────────────────────────────
+
+model Subject {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  color       String   @default("#10b981") // hex color for UI
+  classLevel  String   // e.g. "Class 6", "Class 7"
+  createdAt   DateTime @default(now())
+  timetableEntries TimetableEntry[]
+
+  @@map("subjects")
+  @@index([classLevel])
+}
+
+model Classroom {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique // e.g. "Room 101"
+  capacity   Int      @default(40)
+  building   String?  // e.g. "Main Block"
+  floor      String?  // e.g. "1st Floor"
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  timetableEntries TimetableEntry[]
+
+  @@map("classrooms")
+}
+
+model TimetableSlot {
+  id         Int      @id @default(autoincrement())
+  slotNumber Int      // 1, 2, 3 ... period number
+  startTime  String   // "09:00"
+  endTime    String   // "09:45"
+  isBreak    Boolean  @default(false)
+  breakLabel String?  // "Lunch Break", "Short Break"
+  createdAt  DateTime @default(now())
+  timetableEntries TimetableEntry[]
+
+  @@map("timetable_slots")
+  @@unique([slotNumber])
+}
+
+model TimetableEntry {
+  id           Int           @id @default(autoincrement())
+  classEnrolled String        // "Class 6"
+  section      String        @default("A") // section
+  dayOfWeek    Int           // 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+  slotId       Int
+  slot         TimetableSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  subjectId    Int?
+  subject      Subject?      @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  staffId      Int?
+  classroomId  Int?
+  classroom    Classroom?    @relation(fields: [classroomId], references: [id], onDelete: SetNull)
+  isPublished  Boolean       @default(false)
+  academicYear String        @default("2025-26")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("timetable_entries")
+  @@index([classEnrolled, section, dayOfWeek])
+  @@index([staffId])
+  @@index([classroomId])
+  @@index([slotId])
+}
+
+model SpecialSchedule {
+  id          Int      @id @default(autoincrement())
+  date        DateTime
+  title       String
+  description String?  @db.Text
+  type        String   @default("EVENT") // EVENT, EXAM, HOLIDAY, TIMETABLE_CHANGE
+  classEnrolled String? // null = applies to all
+  section     String?
+  createdBy   Int?     // staffId
+  createdAt   DateTime @default(now())
+
+  @@map("special_schedules")
+  @@index([date])
+  @@index([classEnrolled])
+}
+
+model SubstituteAssignment {
+  id               Int      @id @default(autoincrement())
+  absentStaffId    Int
+  absentStaff      Staff    @relation("AbsentStaff", fields: [absentStaffId], references: [id], onDelete: Cascade)
+  substituteStaffId Int
+  substituteStaff  Staff    @relation("SubstituteStaff", fields: [substituteStaffId], references: [id], onDelete: Cascade)
+  classEnrolled    String
+  assignedAt       DateTime @default(now())
+
+  @@map("substitute_assignments")
+  @@index([absentStaffId])
+  @@index([substituteStaffId])
+  @@index([classEnrolled])
 }
