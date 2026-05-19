@@ -108,7 +108,7 @@ export default function AddableSelect({ value, onChange, options, placeholder, o
               </div>
 
               {filtered.length === 0 && (
-                <div className="px-3 py-4 text-xs text-gray-400 text-center">No results for "{query}"</div>
+                <div className="px-3 py-4 text-xs text-gray-400 text-center">No results for &quot;{query}&quot;</div>
               )}
 
               {filtered.map(o => (

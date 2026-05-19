@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { applyPenaltyForOverdueFee } from "@/lib/penaltyDb";
 
 /**
  * Phase 2: Automatic OVERDUE fee status update
@@ -6,17 +7,21 @@ import db from "@/lib/db";
  * 1. Status is PENDING
  * 2. Due date has passed
  * 3. Amount is not fully paid
+ * 4. No approved installment plan exists
  */
 export async function updateOverdueFees(): Promise<number> {
   try {
     const now = new Date();
     
-    // Find all PENDING fees with past due dates
+    // Find all PENDING fees with past due dates and no approved installment plans
     const overdueFees = await db.fee.findMany({
       where: {
         status: "PENDING",
         dueDate: { lt: now },
-        paidAmount: { lt: db.fee.fields.amount }, // paidAmount < amount
+        paidAmount: { lt: db.fee.fields.amount },
+        installmentRequest: {
+          status: { not: "APPROVED" },
+        },
       },
     });
 
@@ -30,6 +35,9 @@ export async function updateOverdueFees(): Promise<number> {
         status: "PENDING",
         dueDate: { lt: now },
         paidAmount: { lt: db.fee.fields.amount },
+        installmentRequest: {
+          status: { not: "APPROVED" },
+        },
       },
       data: {
         status: "OVERDUE",
@@ -37,6 +45,12 @@ export async function updateOverdueFees(): Promise<number> {
     });
 
     console.log(`[FEE STATUS] Updated ${result.count} fees to OVERDUE status`);
+
+    // Apply penalties to overdue fees
+    for (const fee of overdueFees) {
+      await applyPenaltyForOverdueFee(fee.id);
+    }
+
     return result.count;
   } catch (error) {
     console.error("[FEE STATUS] Error updating overdue fees:", error);
@@ -50,7 +64,11 @@ export async function updateOverdueFees(): Promise<number> {
  */
 export async function getFeeWithUpdatedStatus(feeId: number) {
   try {
-    const fee = await db.fee.findUnique({ where: { id: feeId } });
+    const fee = await db.fee.findUnique({
+      where: { id: feeId },
+      include: { installmentRequest: true },
+    });
+
     if (!fee) return null;
 
     // Check if should be OVERDUE
@@ -58,13 +76,19 @@ export async function getFeeWithUpdatedStatus(feeId: number) {
     if (
       fee.status === "PENDING" &&
       fee.dueDate < now &&
-      Number(fee.paidAmount) < Number(fee.amount)
+      Number(fee.paidAmount) < Number(fee.amount) &&
+      fee.installmentRequest?.status !== "APPROVED"
     ) {
       // Update to OVERDUE
-      return await db.fee.update({
+      const updated = await db.fee.update({
         where: { id: feeId },
         data: { status: "OVERDUE" },
       });
+
+      // Apply penalty
+      await applyPenaltyForOverdueFee(feeId);
+
+      return updated;
     }
 
     return fee;

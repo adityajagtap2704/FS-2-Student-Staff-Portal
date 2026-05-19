@@ -8,8 +8,23 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
 
+    const session = await getServerSession(authOptions);
+    const user = session?.user as any;
+    const role = user?.role;
+
+    const baseWhere: any = {};
+    if (category && category !== "All") {
+      baseWhere.category = category as any;
+    }
+    
+    if (role === "STUDENT") {
+      baseWhere.target = { in: ["STUDENT", "BOTH"] };
+    } else if (role === "CLASS_TEACHER") {
+      baseWhere.target = { in: ["STAFF", "BOTH"] };
+    }
+
     const announcements = await db.announcement.findMany({
-      where: category && category !== "All" ? { category: category as any } : {},
+      where: baseWhere,
       orderBy: { date: "desc" },
     });
 
@@ -29,16 +44,20 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { title, category, description, author, date, imageUrl } = body;
+    const { title, category, target, description, author, date, imageUrl } = body;
 
     if (!title?.trim() || !category || !description?.trim() || !author?.trim() || !date) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    const validTargets = ["STAFF", "STUDENT", "BOTH"];
+    const resolvedTarget = validTargets.includes(target) ? target : "BOTH";
+
     const announcement = await db.announcement.create({
       data: {
         title:       title.trim(),
         category,
+        target:      resolvedTarget as any,
         description: description.trim(),
         author:      author.trim(),
         date:        new Date(date),

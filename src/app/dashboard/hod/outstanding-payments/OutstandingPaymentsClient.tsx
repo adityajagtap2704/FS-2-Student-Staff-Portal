@@ -35,28 +35,38 @@ export default function OutstandingPaymentsClient() {
   const { success: showSuccess, error: showError } = useToast();
 
   // Fetch outstanding payments
-  useEffect(() => {
-    const fetchPayments = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/hod/fees/outstanding?limit=100");
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/hod/fees/outstanding?limit=100");
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch payments");
-        }
-
-        const data = await response.json();
-        setPayments(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error("Error fetching payments:", err);
-        showError("Failed to load outstanding payments");
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error("Failed to fetch payments");
       }
-    };
 
+      const data = await response.json();
+      setPayments(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error fetching payments:", err);
+      showError("Failed to load outstanding payments");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch
+  useEffect(() => {
     fetchPayments();
-  }, [showError]);
+  }, []);
+
+  // Auto-refresh every 10 seconds to catch payment updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchPayments();
+    }, 10000); // 10 seconds
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Filter payments
   useEffect(() => {
@@ -139,10 +149,8 @@ export default function OutstandingPaymentsClient() {
       setFormData({ studentId: "", amount: "", reason: "" });
       setShowCreateModal(false);
 
-      // Refresh payments
-      const refreshResponse = await fetch("/api/hod/fees/outstanding?limit=100");
-      const data = await refreshResponse.json();
-      setPayments(Array.isArray(data) ? data : []);
+      // Refresh payments immediately
+      await fetchPayments();
     } catch (err) {
       console.error("Error creating payment:", err);
       showError("Failed to create outstanding payment");

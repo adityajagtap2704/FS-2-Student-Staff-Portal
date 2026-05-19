@@ -348,7 +348,7 @@ export default function HodTimetableClient({ session }: { session:Session }) {
             {specials.length===0 ? (
               <div className="text-center py-12 text-gray-400">
                 <Calendar size={24} className="mx-auto mb-2 opacity-30"/>
-                <p className="text-sm">No special schedules yet. Click "Add Event" to create one.</p>
+                <p className="text-sm">No special schedules yet. Click &quot;Add Event&quot; to create one.</p>
               </div>
             ) : specials.map(s=>(
               <motion.div key={s.id} initial={{opacity:0,x:-6}} animate={{opacity:1,x:0}}

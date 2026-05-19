@@ -52,9 +52,6 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
       { href: "/dashboard/hod/class-assignments", label: "Class Assignments", keywords: ["assignments", "classes"] },
       { href: "/dashboard/hod/outstanding-payments", label: "Outstanding Fees", keywords: ["outstanding", "fees"] },
       { href: "/dashboard/hod/documents", label: "Document Verification", keywords: ["document verification", "documents"] },
-      { href: "/dashboard/hod/email-logs", label: "Email Logs", keywords: ["email", "logs"] },
-      { href: "/dashboard/hod/payment-logs", label: "Payment Logs", keywords: ["payment logs", "transactions"] },
-      { href: "/dashboard/hod/audit-logs", label: "Audit Logs", keywords: ["audit", "log"] },
     ];
 
     if (role === "HOD") {

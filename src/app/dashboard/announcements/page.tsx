@@ -9,7 +9,18 @@ export default async function AnnouncementsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
+  const user = session.user as any;
+  const role = user?.role;
+
+  const whereClause: any = {};
+  if (role === "STUDENT") {
+    whereClause.target = { in: ["STUDENT", "BOTH"] };
+  } else if (role === "CLASS_TEACHER") {
+    whereClause.target = { in: ["STAFF", "BOTH"] };
+  }
+
   const announcements = await db.announcement.findMany({
+    where: whereClause,
     orderBy: { date: "desc" },
   });
 

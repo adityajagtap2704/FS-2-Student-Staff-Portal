@@ -230,7 +230,7 @@ export default function StaffSignUpPage() {
                     Class Teacher
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    Staff members register as Class Teachers. HOD role is assigned by administration.
+                    Staff members register as Class Teachers. Additional roles are assigned separately.
                   </p>
                 </div>
 

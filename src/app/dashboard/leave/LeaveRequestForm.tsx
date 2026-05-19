@@ -29,10 +29,11 @@ export default function LeaveRequestForm({ balance }: Props) {
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        const response = await fetch("/api/profile");
+        const response = await fetch("/api/auth/session");
         if (response.ok) {
-          const data = await response.json();
-          setIsStaff(data.role === "CLASS_TEACHER" || data.role === "HOD");
+          const session = await response.json();
+          const role = session?.user?.role;
+          setIsStaff(role === "CLASS_TEACHER" || role === "HOD");
         }
       } catch (error) {
         console.error("Error checking user role:", error);
@@ -65,14 +66,19 @@ export default function LeaveRequestForm({ balance }: Props) {
       const response = await fetch(endpoint, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(form),
+        body:    JSON.stringify({
+          type: form.type,
+          from: form.from,
+          to: form.to,
+          reason: form.reason,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         if (response.status === 422) {
-          setErrors({ submit: data.error });
+          setErrors({ submit: data.error || data.errors?.reason || "Validation failed" });
         } else {
           setErrors({ submit: "Failed to submit request. Please try again." });
         }
@@ -84,7 +90,8 @@ export default function LeaveRequestForm({ balance }: Props) {
       setRequestId(formattedId);
       setSubmitted(true);
       toast.success("Leave request submitted!", `Ref ID: ${formattedId}`);
-    } catch {
+    } catch (error) {
+      console.error("Submit error:", error);
       setErrors({ submit: "Failed to submit request. Please try again." });
     } finally {
       setLoading(false);

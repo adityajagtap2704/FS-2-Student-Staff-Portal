@@ -58,8 +58,10 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
         const leaveData = await leaveRes.json();
         const balanceData = await balanceRes.json();
 
-        setData(leaveData);
+        setData(Array.isArray(leaveData) ? leaveData : []);
         setCurrentBalance(balanceData);
+      } else {
+        console.error("Failed to refresh leave data:", leaveRes.status, balanceRes.status);
       }
     } catch (error) {
       console.error("Error refreshing leave data:", error);
@@ -68,8 +70,10 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
     }
   };
 
-  const monthlyPct = Math.round((currentBalance.monthlyUsed / currentBalance.monthlyLimit) * 100);
-  const yearlyPct  = Math.round((currentBalance.yearlyUsed  / currentBalance.yearlyLimit)  * 100);
+  const monthlyUsedPct    = Math.round((currentBalance.monthlyUsed    / currentBalance.monthlyLimit) * 100);
+  const monthlyPendingPct = Math.round((currentBalance.monthlyPending / currentBalance.monthlyLimit) * 100);
+  const yearlyUsedPct     = Math.round((currentBalance.yearlyUsed     / currentBalance.yearlyLimit)  * 100);
+  const yearlyPendingPct  = Math.round((currentBalance.yearlyPending  / currentBalance.yearlyLimit)  * 100);
 
   // Fix #14 — cancel a PENDING leave request
   const handleCancel = async (id: number) => {
@@ -125,11 +129,11 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
               {currentBalance.monthlyUsed} of {currentBalance.monthlyLimit} days used
             </Badge>
           </div>
-          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex">
             <motion.div
-              className={`h-full rounded-full ${monthlyPct >= 100 ? "bg-red-400" : monthlyPct >= 50 ? "bg-amber-400" : "bg-emerald-400"}`}
+              className={`h-full ${monthlyUsedPct >= 100 ? "bg-red-400" : "bg-emerald-400"}`}
               initial={{ width: "0%" }}
-              animate={{ width: `${Math.min(monthlyPct, 100)}%` }}
+              animate={{ width: `${Math.min(monthlyUsedPct, 100)}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             />
           </div>
@@ -147,11 +151,11 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
               {currentBalance.yearlyUsed} of {currentBalance.yearlyLimit} days used
             </Badge>
           </div>
-          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden flex">
             <motion.div
-              className={`h-full rounded-full ${yearlyPct >= 100 ? "bg-red-400" : yearlyPct >= 70 ? "bg-amber-400" : "bg-emerald-400"}`}
+              className={`h-full ${yearlyUsedPct >= 100 ? "bg-red-400" : "bg-emerald-400"}`}
               initial={{ width: "0%" }}
-              animate={{ width: `${Math.min(yearlyPct, 100)}%` }}
+              animate={{ width: `${Math.min(yearlyUsedPct, 100)}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             />
           </div>
@@ -166,14 +170,17 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
             <div key={m.month} className="text-center">
               <p className="text-[10px] text-gray-400 mb-1">{m.month}</p>
               <div className="h-12 w-full bg-gray-50 rounded-lg flex flex-col items-center justify-end overflow-hidden relative">
+                {/* Used portion */}
                 <motion.div
-                  className={`w-full rounded-lg ${m.used >= 2 ? "bg-red-300" : m.used === 1 ? "bg-amber-300" : "bg-emerald-200"}`}
+                  className={`w-full rounded-lg ${m.used >= 2 ? "bg-red-300" : m.used === 1 ? "bg-emerald-300" : "bg-emerald-200"}`}
                   initial={{ height: "0%" }}
                   animate={{ height: m.used > 0 ? `${(m.used / 2) * 100}%` : "4px" }}
                   transition={{ duration: 0.6, ease: "easeOut" }}
                 />
               </div>
-              <p className="text-[10px] font-medium text-gray-500 mt-1">{m.used}/{2}</p>
+              <p className="text-[10px] font-medium text-gray-500 mt-1">
+                {m.used}/{2}
+              </p>
             </div>
           ))}
         </div>

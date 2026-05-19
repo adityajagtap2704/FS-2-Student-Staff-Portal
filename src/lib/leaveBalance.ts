@@ -24,25 +24,26 @@ export function countDays(from: Date | string, to: Date | string): number {
 
 export interface LeaveBalance {
   yearlyUsed:    number;
+  yearlyPending: number;
   yearlyLimit:   number;
   yearlyRemaining: number;
   monthlyUsed:   number;
+  monthlyPending: number;
   monthlyLimit:  number;
   monthlyRemaining: number;
-  monthlyBreakdown: { month: string; used: number; remaining: number }[];
+  monthlyBreakdown: { month: string; used: number; pending: number; remaining: number }[];
 }
 
-export async function getLeaveBalance(studentId: number): Promise<LeaveBalance> {
+export async function getLeaveBalance(id: number, isStaff: boolean = false): Promise<LeaveBalance> {
   const now   = new Date();
   const year  = now.getUTCFullYear();
   const month = now.getUTCMonth(); // 0-indexed
 
-  // Fetch only APPROVED requests for balance display
-  // PENDING requests are NOT counted — student should not be blocked while awaiting approval
+  // Fetch APPROVED and PENDING requests to show reservation status in the UI
   const requests = await db.leaveRequest.findMany({
     where: {
-      studentId,
-      status: "APPROVED",
+      ...(isStaff ? { staffId: id } : { studentId: id }),
+      status: { in: ["APPROVED", "PENDING"] },
       fromDate: {
         gte: new Date(`${year}-01-01`),
         lte: new Date(`${year}-12-31`),
@@ -50,39 +51,38 @@ export async function getLeaveBalance(studentId: number): Promise<LeaveBalance> 
     },
   });
 
-  // Yearly total
-  const yearlyUsed = requests.reduce(
-    (acc, r) => acc + countDays(r.fromDate, r.toDate),
-    0
-  );
+  const approvedRequests = requests.filter(r => r.status === "APPROVED");
+  const pendingRequests  = requests.filter(r => r.status === "PENDING");
 
-  // Helper to get month boundaries in UTC
+  const yearlyUsed = approvedRequests.reduce((acc, r) => acc + countDays(r.fromDate, r.toDate), 0);
+  const yearlyPending = pendingRequests.reduce((acc, r) => acc + countDays(r.fromDate, r.toDate), 0);
+
   const getMonthBoundaries = (y: number, m: number) => {
     const start = new Date(Date.UTC(y, m, 1));
     const end = new Date(Date.UTC(y, m + 1, 0, 23, 59, 59, 999));
     return { start, end };
   };
 
-  // Monthly total (current month) - only count days that fall in current month
   const { start: monthStart, end: monthEnd } = getMonthBoundaries(year, month);
-  
-  const monthlyRequests = requests.filter((r) => {
-    const fromDate = new Date(r.fromDate);
-    const toDate = new Date(r.toDate);
-    return fromDate <= monthEnd && toDate >= monthStart;
-  });
-  
-  const monthlyUsed = monthlyRequests.reduce((acc, r) => {
-    const fromDate = new Date(r.fromDate);
-    const toDate = new Date(r.toDate);
-    
-    const effectiveFrom = fromDate > monthStart ? fromDate : monthStart;
-    const effectiveTo = toDate < monthEnd ? toDate : monthEnd;
-    
-    return acc + countDays(effectiveFrom, effectiveTo);
-  }, 0);
 
-  // Monthly breakdown Jan–Dec
+  const getMonthlySum = (reqList: typeof requests) => {
+    const filtered = reqList.filter((r) => {
+      const fromDate = new Date(r.fromDate);
+      const toDate = new Date(r.toDate);
+      return fromDate <= monthEnd && toDate >= monthStart;
+    });
+    return filtered.reduce((acc, r) => {
+      const fromDate = new Date(r.fromDate);
+      const toDate = new Date(r.toDate);
+      const effectiveFrom = fromDate > monthStart ? fromDate : monthStart;
+      const effectiveTo = toDate < monthEnd ? toDate : monthEnd;
+      return acc + countDays(effectiveFrom, effectiveTo);
+    }, 0);
+  };
+
+  const monthlyUsed = getMonthlySum(approvedRequests);
+  const monthlyPending = getMonthlySum(pendingRequests);
+
   const monthNames = [
     "Jan","Feb","Mar","Apr","May","Jun",
     "Jul","Aug","Sep","Oct","Nov","Dec",
@@ -90,26 +90,32 @@ export async function getLeaveBalance(studentId: number): Promise<LeaveBalance> 
   const monthlyBreakdown = monthNames.map((name, idx) => {
     const { start: mStart, end: mEnd } = getMonthBoundaries(year, idx);
     
-    const monthReqs = requests.filter((r) => {
-      const fromDate = new Date(r.fromDate);
-      const toDate = new Date(r.toDate);
-      return fromDate <= mEnd && toDate >= mStart;
-    });
+    const getSumForMonth = (reqList: typeof requests) => {
+      const filtered = reqList.filter((r) => {
+        const fromDate = new Date(r.fromDate);
+        const toDate = new Date(r.toDate);
+        return fromDate <= mEnd && toDate >= mStart;
+      });
+      return filtered.reduce((acc, r) => {
+        const fromDate = new Date(r.fromDate);
+        const toDate = new Date(r.toDate);
+        const effectiveFrom = fromDate > mStart ? fromDate : mStart;
+        const effectiveTo = toDate < mEnd ? toDate : mEnd;
+        return acc + countDays(effectiveFrom, effectiveTo);
+      }, 0);
+    };
+
+    const used = getSumForMonth(approvedRequests);
+    const pending = getSumForMonth(pendingRequests);
     
-    const used = monthReqs.reduce((acc, r) => {
-      const fromDate = new Date(r.fromDate);
-      const toDate = new Date(r.toDate);
-      
-      const effectiveFrom = fromDate > mStart ? fromDate : mStart;
-      const effectiveTo = toDate < mEnd ? toDate : mEnd;
-      
-      return acc + countDays(effectiveFrom, effectiveTo);
-    }, 0);
-    
-    return { month: name, used, remaining: Math.max(0, MONTHLY_LIMIT - used) };
+    return { 
+      month: name, 
+      used, 
+      pending,
+      remaining: Math.max(0, MONTHLY_LIMIT - used) 
+    };
   });
 
-  // Yearly remaining = sum of all monthly remaining days
   const yearlyRemainingFromMonthly = monthlyBreakdown.reduce(
     (acc, m) => acc + m.remaining,
     0
@@ -117,9 +123,11 @@ export async function getLeaveBalance(studentId: number): Promise<LeaveBalance> 
 
   return {
     yearlyUsed,
+    yearlyPending,
     yearlyLimit:      YEARLY_LIMIT,
     yearlyRemaining:  yearlyRemainingFromMonthly,
     monthlyUsed,
+    monthlyPending,
     monthlyLimit:     MONTHLY_LIMIT,
     monthlyRemaining: Math.max(0, MONTHLY_LIMIT - monthlyUsed),
     monthlyBreakdown,

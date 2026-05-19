@@ -16,7 +16,7 @@ export default async function MyLeavesPage() {
   }
 
   const user = session.user as any;
-  if (user.role !== "CLASS_TEACHER") {
+  if (user.role !== "CLASS_TEACHER" && user.role !== "HOD") {
     redirect("/dashboard");
   }
 

@@ -171,14 +171,10 @@ export function validateLeaveForm(data: {
 
   if (!data.from) {
     errors.from = "Start date is required";
-  } else if (!validateFutureDate(data.from)) {
-    errors.from = "Start date must be in the future";
   }
 
   if (!data.to) {
     errors.to = "End date is required";
-  } else if (!validateFutureDate(data.to)) {
-    errors.to = "End date must be in the future";
   }
 
   if (data.from && data.to && !validateDateRange(data.from, data.to)) {

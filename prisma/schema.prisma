@@ -40,6 +40,18 @@ enum FeeStatus {
   OVERDUE
 }
 
+enum InstallmentRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+  OVERDUE
+}
+
 enum AnnouncementCategory {
   Events
   Exams
@@ -66,6 +78,12 @@ enum StudentStatus {
   APPLICANT
   STUDENT
   REJECTED
+}
+
+enum AnnouncementTarget {
+  STAFF
+  STUDENT
+  BOTH
 }
 
 // ─── Models ───────────────────────────────────────────────────────────────────
@@ -97,6 +115,7 @@ model Student {
   notifications         Notification[]
   studentDocuments      StudentDocument[]
   feePaymentTransactions FeePaymentTransaction[]
+  installmentRequests   InstallmentRequest[]
 
   @@map("students")
 }
@@ -153,15 +172,81 @@ model Fee {
   paymentMethod           String?
   type                    FeeType
   status                  FeeStatus @default(PENDING)
+  penaltyAmount           Decimal   @default(0.00) @db.Decimal(10, 2)
+  penaltyAppliedAt        DateTime?
+  penaltyPercentage       Decimal   @default(5.00) @db.Decimal(5, 2) // 5% default
   feePaymentTransactions  FeePaymentTransaction[]
+  installmentRequest      InstallmentRequest?
+  installments            Installment[]
+  penaltyLogs             PenaltyLog[]
 
   @@map("fees")
+}
+
+model InstallmentRequest {
+  id                Int                       @id @default(autoincrement())
+  feeId             Int                       @unique
+  fee               Fee                       @relation(fields: [feeId], references: [id], onDelete: Cascade)
+  studentId         Int
+  student           Student                   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  numberOfInstallments Int                    // 2, 3, 4, etc.
+  reason            String                    @db.Text // Financial hardship reason
+  status            InstallmentRequestStatus  @default(PENDING)
+  approvedBy        String?                   // HOD email
+  approvedAt        DateTime?
+  rejectionReason   String?
+  requestedAt       DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@map("installment_requests")
+  @@index([studentId])
+  @@index([status])
+}
+
+model Installment {
+  id                Int                @id @default(autoincrement())
+  feeId             Int
+  fee               Fee                @relation(fields: [feeId], references: [id], onDelete: Cascade)
+  studentId         Int
+  installmentNumber Int                // 1, 2, 3...
+  amount            Decimal            @db.Decimal(10, 2)
+  dueDate           DateTime
+  paidAmount        Decimal            @default(0.00) @db.Decimal(10, 2)
+  paidAt            DateTime?
+  status            InstallmentStatus  @default(PENDING)
+  paymentMethod     String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@map("installments")
+  @@index([feeId])
+  @@index([studentId])
+  @@index([status])
+  @@unique([feeId, installmentNumber])
+}
+
+model PenaltyLog {
+  id                Int       @id @default(autoincrement())
+  feeId             Int
+  fee               Fee       @relation(fields: [feeId], references: [id], onDelete: Cascade)
+  studentId         Int
+  penaltyAmount     Decimal   @db.Decimal(10, 2)
+  penaltyPercentage Decimal   @db.Decimal(5, 2)
+  daysOverdue       Int
+  reason            String    // "30 days overdue", "Installment missed"
+  appliedAt         DateTime  @default(now())
+
+  @@map("penalty_logs")
+  @@index([feeId])
+  @@index([studentId])
+  @@index([appliedAt])
 }
 
 model Announcement {
   id          Int                  @id @default(autoincrement())
   title       String
   category    AnnouncementCategory
+  target      AnnouncementTarget   @default(BOTH)
   description String               @db.Text
   author      String
   date        DateTime
@@ -241,56 +326,38 @@ model StaffSignupTemp {
 
 model PaymentOrder {
   id                Int       @id @default(autoincrement())
-  feeId             Int
-  studentId         Int
-  amountPaise       Int       // Amount in paise (1 rupee = 100 paise)
+  feeId             Int       @map("fee_id")
+  studentId         Int       @map("student_id")
+  amountPaise       Int       @map("amount_paise")
   currency          String    @default("INR")
-  razorpayOrderId   String    @unique
+  razorpayOrderId   String    @unique @map("razorpay_order_id")
   status            String    @default("CREATED") // CREATED, PAID, FAILED
   receipt           String?   @db.VarChar(500)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @default(now()) @updatedAt @map("updated_at")
 
   @@map("payment_orders")
 }
 
 model PaymentTransaction {
   id                  Int       @id @default(autoincrement())
-  razorpayOrderId     String    @unique
-  razorpayPaymentId   String
-  razorpaySignature   String
-  rawResponse         String?   @db.LongText // JSON response from Razorpay
-  createdAt           DateTime  @default(now())
+  razorpayOrderId     String    @unique @map("razorpay_order_id")
+  razorpayPaymentId   String    @map("razorpay_payment_id")
+  razorpaySignature   String    @map("razorpay_signature")
+  rawResponse         String?   @db.LongText @map("raw_response")
+  createdAt           DateTime  @default(now()) @map("created_at")
 
   @@map("payment_transactions")
 }
 
 model FeeReceipt {
   id                Int       @id @default(autoincrement())
-  razorpayOrderId   String    @unique
-  receiptNumber     String?   @unique
-  issuedAt          DateTime
-  createdAt         DateTime  @default(now())
+  razorpayOrderId   String    @unique @map("razorpay_order_id")
+  receiptNumber     String?   @unique @map("receipt_number")
+  issuedAt          DateTime  @map("issued_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   @@map("fee_receipts")
-}
-
-model AuditLog {
-  id           Int       @id @default(autoincrement())
-  action       String
-  entityType   String
-  entityId     Int
-  userId       Int?
-  userRole     Role
-  oldValue     String?   @db.LongText
-  newValue     String?   @db.LongText
-  details      String?   @db.LongText
-  timestamp    DateTime  @default(now())
-
-  @@map("audit_logs")
-  @@index([entityType, entityId])
-  @@index([userId])
-  @@index([timestamp])
 }
 
 model StudentDocument {
@@ -455,7 +522,7 @@ model TimetableEntry {
   isPublished  Boolean       @default(false)
   academicYear String        @default("2025-26")
   createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  updatedAt    DateTime      @default(now()) @updatedAt
 
   @@map("timetable_entries")
   @@index([classEnrolled, section, dayOfWeek])

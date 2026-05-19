@@ -60,6 +60,9 @@ export default async function DashboardPage() {
   // 2. Fetch Recent Activities
   // Announcements
   const recentAnnouncements = await db.announcement.findMany({
+    where: {
+      target: { in: ["STUDENT", "BOTH"] }
+    },
     take: 3,
     orderBy: { createdAt: "desc" },
   });

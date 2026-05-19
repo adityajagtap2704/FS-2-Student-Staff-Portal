@@ -151,11 +151,11 @@ export default function StudentTimetableClient({ session }: { session: Session }
         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles size={14} className="text-emerald-600" />
-            <span className="text-sm font-semibold text-emerald-700">Today's Schedule</span>
+            <span className="text-sm font-semibold text-emerald-700">Today&apos;s Schedule</span>
             <span className="text-xs text-emerald-500">({DAYS[todayDay - 1] || "Sunday"})</span>
           </div>
           {todayDay > 6 ? (
-            <p className="text-sm text-gray-500">No classes today — enjoy your Sunday! 🎉</p>
+            <p className="text-sm text-gray-500">No classes today &mdash; enjoy your Sunday! 🎉</p>
           ) : (
             <div className="flex gap-2 flex-wrap">
               {todaySchedule.filter(x => x.entry?.subject).slice(0, 5).map(({ slot, entry }) => (
@@ -454,7 +454,7 @@ export default function StudentTimetableClient({ session }: { session: Session }
             <AlertCircle size={28} className="text-amber-400" />
           </div>
           <h3 className="font-semibold text-gray-700 mb-1">Timetable Not Yet Published</h3>
-          <p className="text-sm text-gray-400 max-w-xs">Your class timetable hasn't been published yet. Please check back later or contact your teacher.</p>
+          <p className="text-sm text-gray-400 max-w-xs">Your class timetable hasn&apos;t been published yet. Please check back later or contact your teacher.</p>
         </div>
       )}
     </div>

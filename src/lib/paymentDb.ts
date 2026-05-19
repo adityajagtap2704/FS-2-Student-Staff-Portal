@@ -119,84 +119,100 @@ export async function listPaymentsForRole(input: {
   const limit = Math.min(Math.max(input.limit ?? 50, 1), 200);
 
   if (input.role === "STUDENT") {
-    return (await db.$queryRaw(
+    const results = (await db.$queryRaw(
       Prisma.sql`
         SELECT
-          po.fee_id              AS feeId,
-          po.student_id          AS studentId,
+          f.id                   AS feeId,
+          f.studentId            AS studentId,
           s.name                 AS studentName,
           s.classEnrolled        AS classEnrolled,
           f.term                 AS term,
-          po.amount_paise        AS amountPaise,
-          po.currency            AS currency,
-          po.status              AS status,
+          f.paidAmount           AS paidAmount,
+          'INR'                  AS currency,
+          CASE WHEN f.status = 'PAID' THEN 'PAID' ELSE 'CREATED' END AS status,
           po.razorpay_order_id   AS razorpayOrderId,
           pt.razorpay_payment_id AS razorpayPaymentId,
           fr.receipt_number      AS receiptNumber,
-          po.updated_at          AS updatedAt
-        FROM payment_orders po
-        JOIN students s ON s.id = po.student_id
-        JOIN fees f     ON f.id = po.fee_id
+          COALESCE(f.paidAt, po.updated_at, NOW()) AS updatedAt
+        FROM fees f
+        JOIN students s ON s.id = f.studentId
+        LEFT JOIN payment_orders po ON po.fee_id = f.id
         LEFT JOIN payment_transactions pt ON pt.razorpay_order_id = po.razorpay_order_id
-        LEFT JOIN fee_receipts fr        ON fr.razorpay_order_id = po.razorpay_order_id
-        WHERE po.student_id = ${input.studentId ?? 0}
-        ORDER BY po.updated_at DESC
+        LEFT JOIN fee_receipts fr ON fr.razorpay_order_id = po.razorpay_order_id
+        WHERE f.studentId = ${input.studentId ?? 0} AND f.status = 'PAID'
+        ORDER BY COALESCE(f.paidAt, po.updated_at, NOW()) DESC
         LIMIT ${limit}
       `
     )) as any[];
+    
+    return results.map(r => ({
+      ...r,
+      amountPaise: Math.round(Number(r.paidAmount) * 100)
+    }));
   }
 
   if (input.role === "CLASS_TEACHER") {
-    return (await db.$queryRaw(
+    const results = (await db.$queryRaw(
       Prisma.sql`
         SELECT
-          po.fee_id              AS feeId,
-          po.student_id          AS studentId,
+          f.id                   AS feeId,
+          f.studentId            AS studentId,
           s.name                 AS studentName,
           s.classEnrolled        AS classEnrolled,
           f.term                 AS term,
-          po.amount_paise        AS amountPaise,
-          po.currency            AS currency,
-          po.status              AS status,
+          f.paidAmount           AS paidAmount,
+          'INR'                  AS currency,
+          CASE WHEN f.status = 'PAID' THEN 'PAID' ELSE 'CREATED' END AS status,
           po.razorpay_order_id   AS razorpayOrderId,
           pt.razorpay_payment_id AS razorpayPaymentId,
           fr.receipt_number      AS receiptNumber,
-          po.updated_at          AS updatedAt
-        FROM payment_orders po
-        JOIN students s ON s.id = po.student_id
-        JOIN fees f     ON f.id = po.fee_id
+          COALESCE(f.paidAt, po.updated_at, NOW()) AS updatedAt
+        FROM fees f
+        JOIN students s ON s.id = f.studentId
+        LEFT JOIN payment_orders po ON po.fee_id = f.id
         LEFT JOIN payment_transactions pt ON pt.razorpay_order_id = po.razorpay_order_id
-        LEFT JOIN fee_receipts fr        ON fr.razorpay_order_id = po.razorpay_order_id
-        WHERE s.classEnrolled = ${input.assignedClass ?? ""}
-        ORDER BY po.updated_at DESC
+        LEFT JOIN fee_receipts fr ON fr.razorpay_order_id = po.razorpay_order_id
+        WHERE s.classEnrolled = ${input.assignedClass ?? ""} AND f.status = 'PAID'
+        ORDER BY COALESCE(f.paidAt, po.updated_at, NOW()) DESC
         LIMIT ${limit}
       `
     )) as any[];
+    
+    return results.map(r => ({
+      ...r,
+      amountPaise: Math.round(Number(r.paidAmount) * 100)
+    }));
   }
 
-  return (await db.$queryRaw(
+  const results = (await db.$queryRaw(
     Prisma.sql`
       SELECT
-        po.fee_id              AS feeId,
-        po.student_id          AS studentId,
+        f.id                   AS feeId,
+        f.studentId            AS studentId,
         s.name                 AS studentName,
         s.classEnrolled        AS classEnrolled,
         f.term                 AS term,
-        po.amount_paise        AS amountPaise,
-        po.currency            AS currency,
-        po.status              AS status,
+        f.paidAmount           AS paidAmount,
+        'INR'                  AS currency,
+        CASE WHEN f.status = 'PAID' THEN 'PAID' ELSE 'CREATED' END AS status,
         po.razorpay_order_id   AS razorpayOrderId,
         pt.razorpay_payment_id AS razorpayPaymentId,
         fr.receipt_number      AS receiptNumber,
-        po.updated_at          AS updatedAt
-      FROM payment_orders po
-      JOIN students s ON s.id = po.student_id
-      JOIN fees f     ON f.id = po.fee_id
+        COALESCE(f.paidAt, po.updated_at, NOW()) AS updatedAt
+      FROM fees f
+      JOIN students s ON s.id = f.studentId
+      LEFT JOIN payment_orders po ON po.fee_id = f.id
       LEFT JOIN payment_transactions pt ON pt.razorpay_order_id = po.razorpay_order_id
-      LEFT JOIN fee_receipts fr        ON fr.razorpay_order_id = po.razorpay_order_id
-      ORDER BY po.updated_at DESC
+      LEFT JOIN fee_receipts fr ON fr.razorpay_order_id = po.razorpay_order_id
+      WHERE f.status = 'PAID'
+      ORDER BY COALESCE(f.paidAt, po.updated_at, NOW()) DESC
       LIMIT ${limit}
     `
   )) as any[];
+  
+  return results.map(r => ({
+    ...r,
+    amountPaise: Math.round(Number(r.paidAmount) * 100)
+  }));
 }
 

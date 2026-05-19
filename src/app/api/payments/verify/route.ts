@@ -54,10 +54,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Update fee to paid (full)
     const fee = await db.fee.findUnique({ where: { id: feeId } });
-    if (!fee) return NextResponse.json({ error: "Fee not found" }, { status: 404 });
-    if (fee.studentId !== Number(user.id)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!fee) {
+      return NextResponse.json({ error: "Fee record not found" }, { status: 404 });
+    }
 
     // Update fee with payment details
     const paymentAmount = Number((order as any)?.amount ?? Math.round(Number(fee.amount) * 100)) / 100;
@@ -77,7 +77,7 @@ export async function POST(req: Request) {
       updateData.paidAt = new Date();
     }
 
-    await db.fee.update({
+    const updatedFee = await db.fee.update({
       where: { id: fee.id },
       data: updateData,
     });
@@ -96,16 +96,18 @@ export async function POST(req: Request) {
     });
 
     // Verify the update was successful
-    const updatedFee = await db.fee.findUnique({ where: { id: feeId } });
-    if (!updatedFee || (isFull && updatedFee.status !== "PAID") || (!isFull && updatedFee.status !== "PENDING")) {
-      console.error("Payment recorded but fee status not updated properly", { feeId, updatedFee, isFull });
+    const verifiedFee = await db.fee.findUnique({ where: { id: feeId } });
+    if (!verifiedFee) {
+      console.error("Payment recorded but fee not found after update", { feeId });
       return NextResponse.json({ 
-        error: "Payment recorded but fee status update failed",
+        error: "Payment recorded but fee verification failed",
         warning: "Please refresh the page to see updated status"
       }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, fee: updatedFee });
+    console.log("[PAYMENT] Payment verified and fee updated:", { feeId, status: verifiedFee.status, paidAmount: verifiedFee.paidAmount });
+
+    return NextResponse.json({ ok: true, fee: verifiedFee });
   } catch (error) {
     console.error("Payments Verify Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Session } from "next-auth";
+import { useSearchParams } from "next/navigation";
 import {
   Users, Clock, CreditCard, Megaphone, CheckCircle2,
   XCircle, BookOpen, AlertCircle, Plus, X,
@@ -168,7 +169,17 @@ export default function HodClient({ session }: Props) {
   const toast = useToast();
   const user  = session.user as any;
 
+  const searchParams = useSearchParams();
+  const urlTab = searchParams.get("tab") as Tab | null;
   const [activeTab, setActiveTab] = useState<Tab>("overview");
+
+  useEffect(() => {
+    if (urlTab && ["overview", "leave", "admissions", "staff", "fees", "announcements"].includes(urlTab)) {
+      setActiveTab(urlTab);
+    } else {
+      setActiveTab("overview");
+    }
+  }, [urlTab]);
 
   // ── Data states ──────────────────────────────────────────────────────────
   const [leaves,        setLeaves]        = useState<any[]>([]);
@@ -217,7 +228,7 @@ export default function HodClient({ session }: Props) {
   // ── Announcement form + edit state ───────────────────────────────────────
   const [showForm,   setShowForm]   = useState(false);
   const [editingId,  setEditingId]  = useState<number | null>(null);
-  const [annForm,    setAnnForm]    = useState({ title: "", category: "General", description: "", author: user.name ?? "", date: new Date().toISOString().split("T")[0], imageUrl: "" });
+  const [annForm,    setAnnForm]    = useState({ title: "", category: "General", target: "BOTH", description: "", author: user.name ?? "", date: new Date().toISOString().split("T")[0], imageUrl: "" });
   const [annErrors,  setAnnErrors]  = useState<Record<string, string>>({});
   const [annLoading, setAnnLoading] = useState(false);
 
@@ -404,6 +415,7 @@ export default function HodClient({ session }: Props) {
     setAnnForm({
       title:       ann.title,
       category:    ann.category,
+      target:      ann.target ?? "BOTH",
       description: ann.description,
       author:      ann.author,
       date:        new Date(ann.date).toISOString().split("T")[0],
@@ -419,7 +431,7 @@ export default function HodClient({ session }: Props) {
   const resetForm = () => {
     setShowForm(false);
     setEditingId(null);
-    setAnnForm({ title: "", category: "General", description: "", author: user.name ?? "", date: new Date().toISOString().split("T")[0], imageUrl: "" });
+    setAnnForm({ title: "", category: "General", target: "BOTH", description: "", author: user.name ?? "", date: new Date().toISOString().split("T")[0], imageUrl: "" });
     setAnnErrors({});
   };
   const validateAnn = () => {
@@ -520,25 +532,6 @@ export default function HodClient({ session }: Props) {
         <p className="mt-1 text-sm text-gray-400">Full access across all classes and staff.</p>
       </motion.div>
 
-      {/* ── Tabs ── */}
-      <div className="flex gap-2 flex-wrap">
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
-              activeTab === key
-                ? "bg-primary text-white shadow-glow"
-                : "bg-white border border-gray-200 text-gray-500 hover:border-primary hover:text-primary"
-            }`}
-          >
-            <Icon size={14} />
-            {label}
-            {key === "leave"      && staffPendingCount > 0 && <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-amber-400 text-white text-[9px] font-bold flex items-center justify-center">{staffPendingCount}</span>}
-            {key === "admissions" && pendingAdmissions > 0 && <span className="ml-1 h-4 min-w-4 px-1 rounded-full bg-blue-400 text-white text-[9px] font-bold flex items-center justify-center">{pendingAdmissions}</span>}
-          </button>
-        ))}
-      </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
           OVERVIEW TAB
@@ -1140,7 +1133,7 @@ export default function HodClient({ session }: Props) {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <Input
                       label="Author *"
                       placeholder="e.g. Principal's Office"
@@ -1155,6 +1148,18 @@ export default function HodClient({ session }: Props) {
                       onChange={e => setAnnForm(f => ({ ...f, date: e.target.value }))}
                       error={annErrors.date}
                     />
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-medium text-[#444]">Target Audience *</label>
+                      <select
+                        value={annForm.target}
+                        onChange={e => setAnnForm(f => ({ ...f, target: e.target.value }))}
+                        className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-[#444] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      >
+                        <option value="BOTH">Both (Students & Staff)</option>
+                        <option value="STUDENT">Students Only</option>
+                        <option value="STAFF">Staff Only</option>
+                      </select>
+                    </div>
                   </div>
 
                   <Textarea
@@ -1211,8 +1216,17 @@ export default function HodClient({ session }: Props) {
                       <img src={ann.imageUrl} alt={ann.title} className="h-12 w-16 rounded-lg object-cover shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary-50 text-primary">{ann.category}</span>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          ann.target === "STUDENT" ? "bg-emerald-50 text-emerald-700" :
+                          ann.target === "STAFF" ? "bg-purple-50 text-purple-700" :
+                          "bg-blue-50 text-blue-700"
+                        }`}>
+                          {ann.target === "STUDENT" ? "Students Only" :
+                           ann.target === "STAFF" ? "Staff Only" :
+                           "Everyone"}
+                        </span>
                         <span className="text-[10px] text-gray-400">{new Date(ann.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
                       </div>
                       <p className="text-sm font-semibold text-[#444] truncate">{ann.title}</p>
