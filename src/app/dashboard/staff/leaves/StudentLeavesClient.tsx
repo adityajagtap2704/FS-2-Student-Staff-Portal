@@ -23,21 +23,41 @@ export default function StudentLeavesClient({ session }: Props) {
   const [leaveFilter, setLeaveFilter] = useState<"PENDING" | "ALL" | "APPROVED" | "REJECTED">("PENDING");
 
   useEffect(() => {
-    fetch("/api/staff/student-leaves")
-      .then(r => r.json()).then(d => { setLeaves(Array.isArray(d) ? d : []); setLoadingL(false); })
-      .catch(() => setLoadingL(false));
+    fetchLeaves();
   }, []);
 
+  const fetchLeaves = async () => {
+    try {
+      const res = await fetch("/api/staff/student-leaves");
+      const data = await res.json();
+      setLeaves(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to fetch leaves:", error);
+    } finally {
+      setLoadingL(false);
+    }
+  };
+
   const handleLeaveAction = async (id: number, status: "APPROVED" | "REJECTED") => {
-    const res = await fetch(`/api/leave/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    if (res.ok) {
-      setLeaves(prev => prev.map(l => l.id === id ? { ...l, status } : l));
+    try {
+      const res = await fetch(`/api/leave/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Leave action error:", errorData);
+        toast.error("Action failed", errorData.error || "Please try again.");
+        return;
+      }
+
+      // Refetch all leaves to update leaveBalance
+      await fetchLeaves();
       toast.success(`Leave ${status.toLowerCase()}`, "Student has been notified.");
-    } else {
+    } catch (error) {
+      console.error("Leave action error:", error);
       toast.error("Action failed", "Please try again.");
     }
   };

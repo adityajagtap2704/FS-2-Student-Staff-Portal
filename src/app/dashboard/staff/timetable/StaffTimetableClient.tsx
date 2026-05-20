@@ -66,10 +66,12 @@ export default function StaffTimetableClient({ session }: { session:Session }) {
     return days;
   };
 
+  const [exporting, setExporting] = useState(false);
+
   const download = () => {
-    let txt="KALNET Staff Timetable\n\n";
-    DAYS.forEach((day,i)=>{ txt+=`\n${day}\n${"─".repeat(36)}\n`; slots.filter(s=>!s.isBreak).forEach(s=>{ const e=getE(i+1,s.id); if(e?.subject) txt+=`  ${s.startTime}–${s.endTime}  ${e.subject.name} | ${e.classEnrolled}\n`; }); });
-    const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([txt],{type:"text/plain"})); a.download="staff-timetable.txt"; a.click();
+    setExporting(true);
+    window.open("/api/timetable/export-pdf", "_blank");
+    setTimeout(() => setExporting(false), 1500);
   };
 
   const views = [["weekly",Grid3X3,"Weekly"],["daily",CalendarDays,"Daily"],["monthly",Layers,"Monthly"]] as const;
@@ -94,8 +96,8 @@ export default function StaffTimetableClient({ session }: { session:Session }) {
               </button>
             ))}
           </div>
-          <button onClick={download} className="flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600 transition-colors">
-            <Download size={12}/>Export
+          <button onClick={download} disabled={exporting} className="flex items-center gap-1 px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60">
+            <Download size={12}/>{exporting ? "Exporting..." : "Export PDF"}
           </button>
         </div>
       </div>

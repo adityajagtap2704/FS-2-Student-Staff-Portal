@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Session } from "next-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Plus, Trash2, Eye, EyeOff, Save, X, AlertCircle, CheckCircle, Grid3X3 } from "lucide-react";
+import { Calendar, Plus, Trash2, Eye, EyeOff, Save, X, AlertCircle, CheckCircle, Grid3X3, Download } from "lucide-react";
 import AddableSelect, { SelectOption } from "@/components/ui/AddableSelect";
 
 const CLASSES = ["Class 6","Class 7","Class 8","Class 9","Class 10","Class 11","Class 12"];
@@ -35,6 +35,14 @@ export default function HodTimetableClient({ session }: { session:Session }) {
   const [spForm, setSpForm] = useState({date:"",title:"",description:"",type:"EVENT",classEnrolled:""});
   const [showSpForm, setShowSpForm] = useState(false);
   const [published, setPublished] = useState(false);
+
+  const [exporting, setExporting] = useState(false);
+
+  const downloadPdf = () => {
+    setExporting(true);
+    window.open(`/api/timetable/export-pdf?class=${encodeURIComponent(cls)}`, "_blank");
+    setTimeout(() => setExporting(false), 1500);
+  };
 
   const msg = (m:string, ok=true) => { setToast({msg:m,ok}); setTimeout(()=>setToast(null),3000); };
 
@@ -153,6 +161,10 @@ export default function HodTimetableClient({ session }: { session:Session }) {
           <button onClick={togglePub}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors ${published?"bg-amber-100 text-amber-700 hover:bg-amber-200":"bg-emerald-500 text-white hover:bg-emerald-600"}`}>
             {published?<><EyeOff size={12}/>Unpublish</>:<><Eye size={12}/>Publish</>}
+          </button>
+          <button onClick={downloadPdf} disabled={exporting}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors disabled:opacity-60">
+            <Download size={12}/>{exporting ? "Exporting..." : "Export PDF"}
           </button>
         </div>
       </div>

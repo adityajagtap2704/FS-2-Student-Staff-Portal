@@ -96,21 +96,20 @@ export default function StudentTimetableClient({ session }: { session: Session }
     return days;
   };
 
+  const [exporting, setExporting] = useState(false);
+
   const downloadTimetable = () => {
-    let text = "KALNET Timetable\n\n";
-    DAYS.forEach((day, i) => {
-      text += `\n${day}\n${"─".repeat(40)}\n`;
-      getDayEntries(i + 1).forEach(({ slot, entry }) => {
-        if (entry?.subject) {
-          text += `  ${slot.startTime}–${slot.endTime}  ${entry.subject.name}`;
-          if (entry.classroom) text += ` | ${entry.classroom.name}`;
-          text += "\n";
-        }
-      });
-    });
-    const blob = new Blob([text], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = "kalnet-timetable.txt"; a.click();
+    setExporting(true);
+    const params = new URLSearchParams();
+    if (view === "monthly") {
+      params.set("mode", "monthly");
+      params.set("month", String(calMonth.getMonth() + 1));
+      params.set("year", String(calMonth.getFullYear()));
+    } else {
+      params.set("mode", "weekly");
+    }
+    window.open(`/api/timetable/export-pdf?${params.toString()}`, "_blank");
+    setTimeout(() => setExporting(false), 1500);
   };
 
   // Today's schedule
@@ -139,9 +138,9 @@ export default function StudentTimetableClient({ session }: { session: Session }
               </button>
             ))}
           </div>
-          <button onClick={downloadTimetable}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600 transition-colors">
-            <Download size={13} />Export
+          <button onClick={downloadTimetable} disabled={exporting}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-500 text-white text-xs font-medium hover:bg-emerald-600 transition-colors disabled:opacity-60">
+            <Download size={13} />{exporting ? "Exporting..." : view === "monthly" ? "Export Monthly PDF" : "Export PDF"}
           </button>
         </div>
       </div>

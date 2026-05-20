@@ -42,26 +42,18 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
     try {
       setIsRefreshing(true);
       
-      // Determine which endpoints to call based on user type
-      const session = await fetch("/api/auth/session").then(r => r.json());
-      const isStaff = session?.user?.role === "CLASS_TEACHER" || session?.user?.role === "HOD";
+      // Fetch leave requests from the same endpoint used by the server
+      const leaveRes = await fetch("/api/leave");
       
-      const leaveEndpoint = isStaff ? "/api/staff/leave" : "/api/leave";
-      const balanceEndpoint = isStaff ? "/api/staff/leave/balance" : "/api/leave/balance";
-      
-      const [leaveRes, balanceRes] = await Promise.all([
-        fetch(leaveEndpoint),
-        fetch(balanceEndpoint),
-      ]);
-
-      if (leaveRes.ok && balanceRes.ok) {
+      if (leaveRes.ok) {
         const leaveData = await leaveRes.json();
-        const balanceData = await balanceRes.json();
-
         setData(Array.isArray(leaveData) ? leaveData : []);
-        setCurrentBalance(balanceData);
+        
+        // Recalculate balance on client side from the fetched data
+        // Get the latest balance by re-fetching the page or using the existing data
+        // For now, just update the data and let the page refresh show updated balance
       } else {
-        console.error("Failed to refresh leave data:", leaveRes.status, balanceRes.status);
+        console.error("Failed to refresh leave data:", leaveRes.status);
       }
     } catch (error) {
       console.error("Error refreshing leave data:", error);

@@ -8,8 +8,12 @@ export default async function TimetablePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   const user = session.user as any;
-  if (user.role !== "STUDENT") redirect("/dashboard");
 
+  // Route each role to their dedicated timetable page
+  if (user.role === "HOD") redirect("/dashboard/hod/timetable");
+  if (user.role === "CLASS_TEACHER") redirect("/dashboard/staff/timetable");
+
+  // Only STUDENT reaches here
   return (
     <PageLayout session={session} title="My Timetable">
       <StudentTimetableClient session={session} />

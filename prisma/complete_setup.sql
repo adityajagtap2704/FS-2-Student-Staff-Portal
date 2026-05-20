@@ -931,6 +931,219 @@ INSERT INTO timetable_entries (classEnrolled, section, dayOfWeek, slotId, subjec
 
 
 -- ============================================================================
+-- TIMETABLE ENTRIES FOR CLASS 7 (staffId=2 = Mr. Suresh Babu, Room 102)
+-- ============================================================================
+INSERT INTO timetable_entries (classEnrolled,section,dayOfWeek,slotId,subjectId,staffId,classroomId,isPublished,academicYear) VALUES
+('Class 7','A',1,1,(SELECT id FROM subjects WHERE code='ENG-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',1,2,(SELECT id FROM subjects WHERE code='MATH-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',1,4,(SELECT id FROM subjects WHERE code='SCI-7' LIMIT 1),2,8,1,'2025-26'),
+('Class 7','A',1,5,(SELECT id FROM subjects WHERE code='HIN-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',1,7,(SELECT id FROM subjects WHERE code='SS-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',1,8,(SELECT id FROM subjects WHERE code='PE-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',2,1,(SELECT id FROM subjects WHERE code='MATH-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',2,2,(SELECT id FROM subjects WHERE code='SCI-7' LIMIT 1),2,8,1,'2025-26'),
+('Class 7','A',2,4,(SELECT id FROM subjects WHERE code='ENG-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',2,5,(SELECT id FROM subjects WHERE code='SS-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',2,7,(SELECT id FROM subjects WHERE code='HIN-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',2,8,(SELECT id FROM subjects WHERE code='ART-7' LIMIT 1),2,10,1,'2025-26'),
+('Class 7','A',3,1,(SELECT id FROM subjects WHERE code='SCI-7' LIMIT 1),2,8,1,'2025-26'),
+('Class 7','A',3,2,(SELECT id FROM subjects WHERE code='ENG-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',3,4,(SELECT id FROM subjects WHERE code='MATH-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',3,5,(SELECT id FROM subjects WHERE code='HIN-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',3,7,(SELECT id FROM subjects WHERE code='PE-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',3,8,(SELECT id FROM subjects WHERE code='SS-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',4,1,(SELECT id FROM subjects WHERE code='HIN-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',4,2,(SELECT id FROM subjects WHERE code='MATH-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',4,4,(SELECT id FROM subjects WHERE code='SCI-7' LIMIT 1),2,8,1,'2025-26'),
+('Class 7','A',4,5,(SELECT id FROM subjects WHERE code='ENG-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',4,7,(SELECT id FROM subjects WHERE code='ART-7' LIMIT 1),2,10,1,'2025-26'),
+('Class 7','A',4,8,(SELECT id FROM subjects WHERE code='SS-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',5,1,(SELECT id FROM subjects WHERE code='SS-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',5,2,(SELECT id FROM subjects WHERE code='HIN-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',5,4,(SELECT id FROM subjects WHERE code='ENG-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',5,5,(SELECT id FROM subjects WHERE code='MATH-7' LIMIT 1),2,2,1,'2025-26'),
+('Class 7','A',5,7,(SELECT id FROM subjects WHERE code='SCI-7' LIMIT 1),2,8,1,'2025-26'),
+('Class 7','A',5,8,(SELECT id FROM subjects WHERE code='PE-7' LIMIT 1),2,2,1,'2025-26');
+
+-- ============================================================================
+-- TIMETABLE ENTRIES FOR CLASS 8 (staffId=3 = Mrs. Anita Sharma, Room 103)
+-- ============================================================================
+INSERT INTO timetable_entries (classEnrolled,section,dayOfWeek,slotId,subjectId,staffId,classroomId,isPublished,academicYear) VALUES
+('Class 8','A',1,1,(SELECT id FROM subjects WHERE code='ENG-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',1,2,(SELECT id FROM subjects WHERE code='MATH-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',1,4,(SELECT id FROM subjects WHERE code='SCI-8' LIMIT 1),3,7,1,'2025-26'),
+('Class 8','A',1,5,(SELECT id FROM subjects WHERE code='HIN-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',1,7,(SELECT id FROM subjects WHERE code='SS-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',1,8,(SELECT id FROM subjects WHERE code='PE-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',2,1,(SELECT id FROM subjects WHERE code='MATH-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',2,2,(SELECT id FROM subjects WHERE code='SCI-8' LIMIT 1),3,7,1,'2025-26'),
+('Class 8','A',2,4,(SELECT id FROM subjects WHERE code='ENG-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',2,5,(SELECT id FROM subjects WHERE code='SS-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',2,7,(SELECT id FROM subjects WHERE code='HIN-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',2,8,(SELECT id FROM subjects WHERE code='ART-8' LIMIT 1),3,10,1,'2025-26'),
+('Class 8','A',3,1,(SELECT id FROM subjects WHERE code='SCI-8' LIMIT 1),3,7,1,'2025-26'),
+('Class 8','A',3,2,(SELECT id FROM subjects WHERE code='ENG-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',3,4,(SELECT id FROM subjects WHERE code='MATH-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',3,5,(SELECT id FROM subjects WHERE code='HIN-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',3,7,(SELECT id FROM subjects WHERE code='PE-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',3,8,(SELECT id FROM subjects WHERE code='SS-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',4,1,(SELECT id FROM subjects WHERE code='HIN-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',4,2,(SELECT id FROM subjects WHERE code='MATH-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',4,4,(SELECT id FROM subjects WHERE code='SCI-8' LIMIT 1),3,7,1,'2025-26'),
+('Class 8','A',4,5,(SELECT id FROM subjects WHERE code='ENG-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',4,7,(SELECT id FROM subjects WHERE code='ART-8' LIMIT 1),3,10,1,'2025-26'),
+('Class 8','A',4,8,(SELECT id FROM subjects WHERE code='SS-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',5,1,(SELECT id FROM subjects WHERE code='SS-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',5,2,(SELECT id FROM subjects WHERE code='HIN-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',5,4,(SELECT id FROM subjects WHERE code='ENG-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',5,5,(SELECT id FROM subjects WHERE code='MATH-8' LIMIT 1),3,3,1,'2025-26'),
+('Class 8','A',5,7,(SELECT id FROM subjects WHERE code='SCI-8' LIMIT 1),3,7,1,'2025-26'),
+('Class 8','A',5,8,(SELECT id FROM subjects WHERE code='PE-8' LIMIT 1),3,3,1,'2025-26');
+
+-- ============================================================================
+-- TIMETABLE ENTRIES FOR CLASS 9 (staffId=4 = Mr. Ravi Teja, Room 201)
+-- ============================================================================
+INSERT INTO timetable_entries (classEnrolled,section,dayOfWeek,slotId,subjectId,staffId,classroomId,isPublished,academicYear) VALUES
+('Class 9','A',1,1,(SELECT id FROM subjects WHERE code='C9-ENG' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',1,2,(SELECT id FROM subjects WHERE code='C9-MATH' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',1,4,(SELECT id FROM subjects WHERE code='C9-PHY' LIMIT 1),4,7,1,'2025-26'),
+('Class 9','A',1,5,(SELECT id FROM subjects WHERE code='C9-CHEM' LIMIT 1),4,8,1,'2025-26'),
+('Class 9','A',1,7,(SELECT id FROM subjects WHERE code='C9-SST' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',1,8,(SELECT id FROM subjects WHERE code='C9-HIN' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',2,1,(SELECT id FROM subjects WHERE code='C9-MATH' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',2,2,(SELECT id FROM subjects WHERE code='C9-PHY' LIMIT 1),4,7,1,'2025-26'),
+('Class 9','A',2,4,(SELECT id FROM subjects WHERE code='C9-BIO' LIMIT 1),4,8,1,'2025-26'),
+('Class 9','A',2,5,(SELECT id FROM subjects WHERE code='C9-ENG' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',2,7,(SELECT id FROM subjects WHERE code='C9-HIN' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',2,8,(SELECT id FROM subjects WHERE code='C9-SST' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',3,1,(SELECT id FROM subjects WHERE code='C9-CHEM' LIMIT 1),4,8,1,'2025-26'),
+('Class 9','A',3,2,(SELECT id FROM subjects WHERE code='C9-ENG' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',3,4,(SELECT id FROM subjects WHERE code='C9-MATH' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',3,5,(SELECT id FROM subjects WHERE code='C9-BIO' LIMIT 1),4,8,1,'2025-26'),
+('Class 9','A',3,7,(SELECT id FROM subjects WHERE code='C9-PHY' LIMIT 1),4,7,1,'2025-26'),
+('Class 9','A',3,8,(SELECT id FROM subjects WHERE code='C9-SST' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',4,1,(SELECT id FROM subjects WHERE code='C9-HIN' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',4,2,(SELECT id FROM subjects WHERE code='C9-CHEM' LIMIT 1),4,8,1,'2025-26'),
+('Class 9','A',4,4,(SELECT id FROM subjects WHERE code='C9-ENG' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',4,5,(SELECT id FROM subjects WHERE code='C9-MATH' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',4,7,(SELECT id FROM subjects WHERE code='C9-BIO' LIMIT 1),4,8,1,'2025-26'),
+('Class 9','A',4,8,(SELECT id FROM subjects WHERE code='C9-PHY' LIMIT 1),4,7,1,'2025-26'),
+('Class 9','A',5,1,(SELECT id FROM subjects WHERE code='C9-PHY' LIMIT 1),4,7,1,'2025-26'),
+('Class 9','A',5,2,(SELECT id FROM subjects WHERE code='C9-HIN' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',5,4,(SELECT id FROM subjects WHERE code='C9-SST' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',5,5,(SELECT id FROM subjects WHERE code='C9-CHEM' LIMIT 1),4,8,1,'2025-26'),
+('Class 9','A',5,7,(SELECT id FROM subjects WHERE code='C9-MATH' LIMIT 1),4,4,1,'2025-26'),
+('Class 9','A',5,8,(SELECT id FROM subjects WHERE code='C9-ENG' LIMIT 1),4,4,1,'2025-26');
+
+-- ============================================================================
+-- TIMETABLE ENTRIES FOR CLASS 10 (staffId=5 = Mrs. Preethi Nair, Room 202)
+-- ============================================================================
+INSERT INTO timetable_entries (classEnrolled,section,dayOfWeek,slotId,subjectId,staffId,classroomId,isPublished,academicYear) VALUES
+('Class 10','A',1,1,(SELECT id FROM subjects WHERE code='C10-ENG' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',1,2,(SELECT id FROM subjects WHERE code='C10-MATH' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',1,4,(SELECT id FROM subjects WHERE code='C10-PHY' LIMIT 1),5,7,1,'2025-26'),
+('Class 10','A',1,5,(SELECT id FROM subjects WHERE code='C10-CHEM' LIMIT 1),5,8,1,'2025-26'),
+('Class 10','A',1,7,(SELECT id FROM subjects WHERE code='C10-SST' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',1,8,(SELECT id FROM subjects WHERE code='C10-HIN' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',2,1,(SELECT id FROM subjects WHERE code='C10-MATH' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',2,2,(SELECT id FROM subjects WHERE code='C10-PHY' LIMIT 1),5,7,1,'2025-26'),
+('Class 10','A',2,4,(SELECT id FROM subjects WHERE code='C10-BIO' LIMIT 1),5,8,1,'2025-26'),
+('Class 10','A',2,5,(SELECT id FROM subjects WHERE code='C10-ENG' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',2,7,(SELECT id FROM subjects WHERE code='C10-HIN' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',2,8,(SELECT id FROM subjects WHERE code='C10-SST' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',3,1,(SELECT id FROM subjects WHERE code='C10-CHEM' LIMIT 1),5,8,1,'2025-26'),
+('Class 10','A',3,2,(SELECT id FROM subjects WHERE code='C10-ENG' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',3,4,(SELECT id FROM subjects WHERE code='C10-MATH' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',3,5,(SELECT id FROM subjects WHERE code='C10-BIO' LIMIT 1),5,8,1,'2025-26'),
+('Class 10','A',3,7,(SELECT id FROM subjects WHERE code='C10-PHY' LIMIT 1),5,7,1,'2025-26'),
+('Class 10','A',3,8,(SELECT id FROM subjects WHERE code='C10-SST' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',4,1,(SELECT id FROM subjects WHERE code='C10-HIN' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',4,2,(SELECT id FROM subjects WHERE code='C10-CHEM' LIMIT 1),5,8,1,'2025-26'),
+('Class 10','A',4,4,(SELECT id FROM subjects WHERE code='C10-ENG' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',4,5,(SELECT id FROM subjects WHERE code='C10-MATH' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',4,7,(SELECT id FROM subjects WHERE code='C10-BIO' LIMIT 1),5,8,1,'2025-26'),
+('Class 10','A',4,8,(SELECT id FROM subjects WHERE code='C10-PHY' LIMIT 1),5,7,1,'2025-26'),
+('Class 10','A',5,1,(SELECT id FROM subjects WHERE code='C10-PHY' LIMIT 1),5,7,1,'2025-26'),
+('Class 10','A',5,2,(SELECT id FROM subjects WHERE code='C10-HIN' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',5,4,(SELECT id FROM subjects WHERE code='C10-SST' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',5,5,(SELECT id FROM subjects WHERE code='C10-CHEM' LIMIT 1),5,8,1,'2025-26'),
+('Class 10','A',5,7,(SELECT id FROM subjects WHERE code='C10-MATH' LIMIT 1),5,5,1,'2025-26'),
+('Class 10','A',5,8,(SELECT id FROM subjects WHERE code='C10-ENG' LIMIT 1),5,5,1,'2025-26');
+
+-- ============================================================================
+-- TIMETABLE ENTRIES FOR CLASS 11 (staffId=6 = Mr. Karthik Reddy, Room 203)
+-- ============================================================================
+INSERT INTO timetable_entries (classEnrolled,section,dayOfWeek,slotId,subjectId,staffId,classroomId,isPublished,academicYear) VALUES
+('Class 11','A',1,1,(SELECT id FROM subjects WHERE code='C11-ENG' LIMIT 1),6,6,1,'2025-26'),
+('Class 11','A',1,2,(SELECT id FROM subjects WHERE code='C11-MATH' LIMIT 1),6,6,1,'2025-26'),
+('Class 11','A',1,4,(SELECT id FROM subjects WHERE code='C11-PHY' LIMIT 1),6,7,1,'2025-26'),
+('Class 11','A',1,5,(SELECT id FROM subjects WHERE code='C11-CHEM' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',1,7,(SELECT id FROM subjects WHERE code='C11-CS' LIMIT 1),6,9,1,'2025-26'),
+('Class 11','A',1,8,(SELECT id FROM subjects WHERE code='C11-BIO' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',2,1,(SELECT id FROM subjects WHERE code='C11-MATH' LIMIT 1),6,6,1,'2025-26'),
+('Class 11','A',2,2,(SELECT id FROM subjects WHERE code='C11-PHY' LIMIT 1),6,7,1,'2025-26'),
+('Class 11','A',2,4,(SELECT id FROM subjects WHERE code='C11-CS' LIMIT 1),6,9,1,'2025-26'),
+('Class 11','A',2,5,(SELECT id FROM subjects WHERE code='C11-ENG' LIMIT 1),6,6,1,'2025-26'),
+('Class 11','A',2,7,(SELECT id FROM subjects WHERE code='C11-CHEM' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',2,8,(SELECT id FROM subjects WHERE code='C11-BIO' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',3,1,(SELECT id FROM subjects WHERE code='C11-CHEM' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',3,2,(SELECT id FROM subjects WHERE code='C11-ENG' LIMIT 1),6,6,1,'2025-26'),
+('Class 11','A',3,4,(SELECT id FROM subjects WHERE code='C11-MATH' LIMIT 1),6,6,1,'2025-26'),
+('Class 11','A',3,5,(SELECT id FROM subjects WHERE code='C11-BIO' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',3,7,(SELECT id FROM subjects WHERE code='C11-PHY' LIMIT 1),6,7,1,'2025-26'),
+('Class 11','A',3,8,(SELECT id FROM subjects WHERE code='C11-CS' LIMIT 1),6,9,1,'2025-26'),
+('Class 11','A',4,1,(SELECT id FROM subjects WHERE code='C11-BIO' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',4,2,(SELECT id FROM subjects WHERE code='C11-CHEM' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',4,4,(SELECT id FROM subjects WHERE code='C11-ENG' LIMIT 1),6,6,1,'2025-26'),
+('Class 11','A',4,5,(SELECT id FROM subjects WHERE code='C11-MATH' LIMIT 1),6,6,1,'2025-26'),
+('Class 11','A',4,7,(SELECT id FROM subjects WHERE code='C11-CS' LIMIT 1),6,9,1,'2025-26'),
+('Class 11','A',4,8,(SELECT id FROM subjects WHERE code='C11-PHY' LIMIT 1),6,7,1,'2025-26'),
+('Class 11','A',5,1,(SELECT id FROM subjects WHERE code='C11-PHY' LIMIT 1),6,7,1,'2025-26'),
+('Class 11','A',5,2,(SELECT id FROM subjects WHERE code='C11-CS' LIMIT 1),6,9,1,'2025-26'),
+('Class 11','A',5,4,(SELECT id FROM subjects WHERE code='C11-CHEM' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',5,5,(SELECT id FROM subjects WHERE code='C11-BIO' LIMIT 1),6,8,1,'2025-26'),
+('Class 11','A',5,7,(SELECT id FROM subjects WHERE code='C11-MATH' LIMIT 1),6,6,1,'2025-26'),
+('Class 11','A',5,8,(SELECT id FROM subjects WHERE code='C11-ENG' LIMIT 1),6,6,1,'2025-26');
+
+-- ============================================================================
+-- TIMETABLE ENTRIES FOR CLASS 12 (staffId=7 = Mrs. Sunita Rao, Room 201)
+-- ============================================================================
+INSERT INTO timetable_entries (classEnrolled,section,dayOfWeek,slotId,subjectId,staffId,classroomId,isPublished,academicYear) VALUES
+('Class 12','A',1,1,(SELECT id FROM subjects WHERE code='C12-ENG' LIMIT 1),7,4,1,'2025-26'),
+('Class 12','A',1,2,(SELECT id FROM subjects WHERE code='C12-MATH' LIMIT 1),7,4,1,'2025-26'),
+('Class 12','A',1,4,(SELECT id FROM subjects WHERE code='C12-PHY' LIMIT 1),7,7,1,'2025-26'),
+('Class 12','A',1,5,(SELECT id FROM subjects WHERE code='C12-CHEM' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',1,7,(SELECT id FROM subjects WHERE code='C12-CS' LIMIT 1),7,9,1,'2025-26'),
+('Class 12','A',1,8,(SELECT id FROM subjects WHERE code='C12-BIO' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',2,1,(SELECT id FROM subjects WHERE code='C12-MATH' LIMIT 1),7,4,1,'2025-26'),
+('Class 12','A',2,2,(SELECT id FROM subjects WHERE code='C12-PHY' LIMIT 1),7,7,1,'2025-26'),
+('Class 12','A',2,4,(SELECT id FROM subjects WHERE code='C12-CS' LIMIT 1),7,9,1,'2025-26'),
+('Class 12','A',2,5,(SELECT id FROM subjects WHERE code='C12-ENG' LIMIT 1),7,4,1,'2025-26'),
+('Class 12','A',2,7,(SELECT id FROM subjects WHERE code='C12-CHEM' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',2,8,(SELECT id FROM subjects WHERE code='C12-BIO' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',3,1,(SELECT id FROM subjects WHERE code='C12-CHEM' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',3,2,(SELECT id FROM subjects WHERE code='C12-ENG' LIMIT 1),7,4,1,'2025-26'),
+('Class 12','A',3,4,(SELECT id FROM subjects WHERE code='C12-MATH' LIMIT 1),7,4,1,'2025-26'),
+('Class 12','A',3,5,(SELECT id FROM subjects WHERE code='C12-BIO' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',3,7,(SELECT id FROM subjects WHERE code='C12-PHY' LIMIT 1),7,7,1,'2025-26'),
+('Class 12','A',3,8,(SELECT id FROM subjects WHERE code='C12-CS' LIMIT 1),7,9,1,'2025-26'),
+('Class 12','A',4,1,(SELECT id FROM subjects WHERE code='C12-BIO' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',4,2,(SELECT id FROM subjects WHERE code='C12-CHEM' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',4,4,(SELECT id FROM subjects WHERE code='C12-ENG' LIMIT 1),7,4,1,'2025-26'),
+('Class 12','A',4,5,(SELECT id FROM subjects WHERE code='C12-MATH' LIMIT 1),7,4,1,'2025-26'),
+('Class 12','A',4,7,(SELECT id FROM subjects WHERE code='C12-CS' LIMIT 1),7,9,1,'2025-26'),
+('Class 12','A',4,8,(SELECT id FROM subjects WHERE code='C12-PHY' LIMIT 1),7,7,1,'2025-26'),
+('Class 12','A',5,1,(SELECT id FROM subjects WHERE code='C12-PHY' LIMIT 1),7,7,1,'2025-26'),
+('Class 12','A',5,2,(SELECT id FROM subjects WHERE code='C12-CS' LIMIT 1),7,9,1,'2025-26'),
+('Class 12','A',5,4,(SELECT id FROM subjects WHERE code='C12-CHEM' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',5,5,(SELECT id FROM subjects WHERE code='C12-BIO' LIMIT 1),7,8,1,'2025-26'),
+('Class 12','A',5,7,(SELECT id FROM subjects WHERE code='C12-MATH' LIMIT 1),7,4,1,'2025-26'),
+('Class 12','A',5,8,(SELECT id FROM subjects WHERE code='C12-ENG' LIMIT 1),7,4,1,'2025-26');
+
+-- Assign Class 6 teacher to existing entries
+UPDATE timetable_entries SET staffId=1 WHERE classEnrolled='Class 6' AND staffId IS NULL;
+
+-- ============================================================================
 -- VERIFICATION QUERIES
 -- ============================================================================
 SELECT 'admissions'         AS table_name, COUNT(*) AS total_rows FROM admissions

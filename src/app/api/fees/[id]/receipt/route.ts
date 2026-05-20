@@ -29,6 +29,7 @@ function numberToWords(num: number): string {
 function generateReceiptHTML(data: {
   receiptNumber: string;
   issuedAt: string;
+  paidAt: string;
   studentName: string;
   rollNumber: string;
   classEnrolled: string;
@@ -473,8 +474,8 @@ function generateReceiptHTML(data: {
           <div class="meta-value">${data.receiptNumber}</div>
         </div>
         <div class="meta-item">
-          <div class="meta-label">Date of Issue</div>
-          <div class="meta-value">${data.issuedAt}</div>
+          <div class="meta-label">Paid Date</div>
+          <div class="meta-value">${data.paidAt}</div>
         </div>
         <div class="meta-item">
           <div class="meta-label">Academic Year</div>
@@ -601,7 +602,7 @@ function generateReceiptHTML(data: {
 
         <div class="paid-stamp">
           <div class="stamp-text">PAID</div>
-          <div class="stamp-date">${data.issuedAt}</div>
+          <div class="stamp-date">${data.paidAt}</div>
         </div>
 
         <div class="sig-block">
@@ -669,6 +670,13 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     const amountInr = receipt ? (receipt.amountPaise ?? 0) / 100 : Number(fee.paidAmount);
     const issuedAt = receipt?.issuedAt ? new Date(receipt.issuedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 
+    // Paid date: prefer fee.paidAt (actual payment date), fallback to receipt.issuedAt, then now
+    const paidAtDate = fee.paidAt
+      ? new Date(fee.paidAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+      : receipt?.issuedAt
+        ? new Date(receipt.issuedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+        : new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
     // Academic year calculation
     const now = new Date();
     const acadStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
@@ -677,6 +685,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
     const html = generateReceiptHTML({
       receiptNumber: receipt?.receiptNumber ?? `KN-RCP-${String(feeId).padStart(5, '0')}`,
       issuedAt,
+      paidAt: paidAtDate,
       studentName: fee.student?.name || '',
       rollNumber: fee.student?.rollNumber || '',
       classEnrolled: fee.student?.classEnrolled || '',
