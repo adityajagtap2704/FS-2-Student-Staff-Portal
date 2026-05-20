@@ -613,11 +613,43 @@ VALUES
 -- ============================================================================
 -- Term 1 2026 - All PAID
 INSERT INTO fees (studentId, term, dueDate, amount, paidAmount, paidAt, paymentMethod, type, status)
-SELECT id, 'Term 1 2026', '2026-03-31', 15000.00, 15000.00, '2026-03-15', 'ONLINE', 'Tuition', 'PAID' FROM students;
+SELECT id, 'Term 1 2026', '2026-03-31',
+  CASE classEnrolled
+    WHEN 'Class 6' THEN 15000.00
+    WHEN 'Class 7' THEN 20000.00
+    WHEN 'Class 8' THEN 22500.00
+    WHEN 'Class 9' THEN 25000.00
+    WHEN 'Class 10' THEN 30000.00
+    WHEN 'Class 11' THEN 35000.00
+    WHEN 'Class 12' THEN 45000.00
+    ELSE 15000.00
+  END,
+  CASE classEnrolled
+    WHEN 'Class 6' THEN 15000.00
+    WHEN 'Class 7' THEN 20000.00
+    WHEN 'Class 8' THEN 22500.00
+    WHEN 'Class 9' THEN 25000.00
+    WHEN 'Class 10' THEN 30000.00
+    WHEN 'Class 11' THEN 35000.00
+    WHEN 'Class 12' THEN 45000.00
+    ELSE 15000.00
+  END,
+  '2026-03-15', 'ONLINE', 'Tuition', 'PAID' FROM students;
 
 -- Term 2 2026 - All PENDING (No partial payments without corresponding payment records)
 INSERT INTO fees (studentId, term, dueDate, amount, paidAmount, paidAt, paymentMethod, type, status)
-SELECT id, 'Term 2 2026', '2026-06-30', 15000.00, 0.00, NULL, NULL, 'Tuition', 'PENDING' FROM students;
+SELECT id, 'Term 2 2026', '2026-06-30',
+  CASE classEnrolled
+    WHEN 'Class 6' THEN 15000.00
+    WHEN 'Class 7' THEN 20000.00
+    WHEN 'Class 8' THEN 22500.00
+    WHEN 'Class 9' THEN 25000.00
+    WHEN 'Class 10' THEN 30000.00
+    WHEN 'Class 11' THEN 35000.00
+    WHEN 'Class 12' THEN 45000.00
+    ELSE 15000.00
+  END,
+  0.00, NULL, NULL, 'Tuition', 'PENDING' FROM students;
 
 -- ============================================================================
 -- INSERT ANNOUNCEMENTS (5 records)

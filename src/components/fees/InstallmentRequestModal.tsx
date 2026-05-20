@@ -24,7 +24,7 @@ export default function InstallmentRequestModal({
   onSuccess,
 }: InstallmentRequestModalProps) {
   const { success, error } = useToast();
-  const FIRST_INSTALLMENT = 5000;
+  const FIRST_INSTALLMENT = Math.round(feeAmount / 2);
   const remainingBalance = feeAmount - FIRST_INSTALLMENT;
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
@@ -78,7 +78,7 @@ export default function InstallmentRequestModal({
           numberOfInstallments: 1,
           reason,
           firstInstallmentAmount: FIRST_INSTALLMENT,
-          remainingBalance: remainingBalance,
+          remainingBalance,
         }),
       });
 

@@ -59,32 +59,91 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Fee record not found" }, { status: 404 });
     }
 
-    // Update fee with payment details
     const paymentAmount = Number((order as any)?.amount ?? Math.round(Number(fee.amount) * 100)) / 100;
-    const newPaidAmount = Number(fee.paidAmount) + paymentAmount;
-    const isFull = newPaidAmount >= Number(fee.amount);
-    
-    // Only update paidAt if this is a full payment
-    // For partial payments, keep the original paidAt (if any) or set it only on full payment
-    const updateData: any = {
-      paidAmount: newPaidAmount,
-      status: isFull ? "PAID" : "PENDING",
-      paymentMethod: "ONLINE",
-    };
+    const notesType = String((notes as any)?.type ?? "");
+    const isOutstandingSummary = notesType === "OutstandingSummary";
 
-    // Only set paidAt when payment is fully completed
-    if (isFull) {
-      updateData.paidAt = new Date();
+    let feeToRecordId = fee.id;
+    let updatedFee: any = fee;
+
+    if (isOutstandingSummary) {
+      const studentIdValue = Number(user.id);
+      const allFees = await db.fee.findMany({ where: { studentId: studentIdValue } });
+      const unpaidFees = allFees
+        .filter((item) => Number(item.paidAmount) < Number(item.amount))
+        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+
+      if (unpaidFees.length === 0) {
+        return NextResponse.json({ error: "No outstanding fees found" }, { status: 400 });
+      }
+
+      let remainingPayment = paymentAmount;
+      const updatedFees = [];
+
+      for (const unpaidFee of unpaidFees) {
+        if (remainingPayment <= 0) break;
+
+        const feeRemaining = Number(unpaidFee.amount) - Number(unpaidFee.paidAmount);
+        if (feeRemaining <= 0) continue;
+
+        const appliedAmount = Math.min(feeRemaining, remainingPayment);
+        const newPaidAmount = Number(unpaidFee.paidAmount) + appliedAmount;
+        const fullPaid = newPaidAmount >= Number(unpaidFee.amount);
+        const dueDate = new Date(unpaidFee.dueDate);
+        const newStatus = fullPaid
+          ? "PAID"
+          : dueDate.getTime() < Date.now()
+          ? "OVERDUE"
+          : "PENDING";
+
+        const updateData: any = {
+          paidAmount: newPaidAmount,
+          status: newStatus,
+          paymentMethod: "ONLINE",
+        };
+
+        if (fullPaid) {
+          updateData.paidAt = new Date();
+        }
+
+        const updated = await db.fee.update({
+          where: { id: unpaidFee.id },
+          data: updateData,
+        });
+        updatedFees.push(updated);
+
+        remainingPayment -= appliedAmount;
+      }
+
+      if (remainingPayment > 0.001) {
+        return NextResponse.json({ error: "Unable to allocate full payment to outstanding fees" }, { status: 500 });
+      }
+
+      feeToRecordId = unpaidFees[0].id;
+      updatedFee = await db.fee.findUnique({ where: { id: feeToRecordId } });
+    } else {
+      const newPaidAmount = Number(fee.paidAmount) + paymentAmount;
+      const isFull = newPaidAmount >= Number(fee.amount);
+
+      const updateData: any = {
+        paidAmount: newPaidAmount,
+        status: isFull ? "PAID" : "PENDING",
+        paymentMethod: "ONLINE",
+      };
+
+      if (isFull) {
+        updateData.paidAt = new Date();
+      }
+
+      updatedFee = await db.fee.update({
+        where: { id: fee.id },
+        data: updateData,
+      });
     }
-
-    const updatedFee = await db.fee.update({
-      where: { id: fee.id },
-      data: updateData,
-    });
 
     // Record the payment
     await recordSuccessfulPayment({
-      feeId: fee.id,
+      feeId: feeToRecordId,
       studentId: fee.studentId,
       amountPaise: Number((order as any)?.amount ?? Math.round(Number(paymentAmount) * 100)),
       currency: String((order as any)?.currency ?? "INR"),
@@ -96,9 +155,9 @@ export async function POST(req: Request) {
     });
 
     // Verify the update was successful
-    const verifiedFee = await db.fee.findUnique({ where: { id: feeId } });
+    const verifiedFee = await db.fee.findUnique({ where: { id: feeToRecordId } });
     if (!verifiedFee) {
-      console.error("Payment recorded but fee not found after update", { feeId });
+      console.error("Payment recorded but fee not found after update", { feeId: feeToRecordId });
       return NextResponse.json({ 
         error: "Payment recorded but fee verification failed",
         warning: "Please refresh the page to see updated status"

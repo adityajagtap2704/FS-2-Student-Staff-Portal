@@ -47,6 +47,16 @@ export async function POST(req: Request) {
       );
     }
 
+    const firstInstallmentValue = Number(firstInstallmentAmount ?? 0) || Math.round(Number(fee.amount) / 2);
+    const remainingBalanceValue = Number(remainingBalance ?? 0) || Number(fee.amount) - firstInstallmentValue;
+
+    if (firstInstallmentValue <= 0 || remainingBalanceValue < 0) {
+      return NextResponse.json(
+        { error: "Invalid installment amount values" },
+        { status: 400 }
+      );
+    }
+
     // Check if student already has an approved installment request for this term
     const existingInstallmentForTerm = await db.installmentRequest.findFirst({
       where: {
@@ -106,11 +116,11 @@ export async function POST(req: Request) {
                   </tr>
                   <tr style="border-bottom: 1px solid #e5e7eb;">
                     <td style="padding: 10px 0; color: #6b7280; font-weight: 500;">1st Installment:</td>
-                    <td style="padding: 10px 0; color: #10b981; text-align: right; font-weight: bold;">₹5,000</td>
+                    <td style="padding: 10px 0; color: #10b981; text-align: right; font-weight: bold;">₹${firstInstallmentValue.toLocaleString()}</td>
                   </tr>
                   <tr>
                     <td style="padding: 10px 0; color: #6b7280; font-weight: 500;">Remaining Balance:</td>
-                    <td style="padding: 10px 0; color: #f59e0b; text-align: right; font-weight: bold;">₹${(Number(fee.amount) - 5000).toLocaleString()}</td>
+                    <td style="padding: 10px 0; color: #f59e0b; text-align: right; font-weight: bold;">₹${remainingBalanceValue.toLocaleString()}</td>
                   </tr>
                 </table>
               </div>
