@@ -1200,3 +1200,40 @@ UNION ALL SELECT 'subjects',              COUNT(*) FROM subjects
 UNION ALL SELECT 'timetable_entries',     COUNT(*) FROM timetable_entries
 UNION ALL SELECT 'special_schedules',     COUNT(*) FROM special_schedules
 UNION ALL SELECT 'substitute_assignments', COUNT(*) FROM substitute_assignments;
+
+
+-- ============================================================================
+-- TABLE 27: PAYMENT_WEBHOOK_LOGS (if not exists)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS payment_webhook_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  event VARCHAR(100) NOT NULL,
+  razorpayOrderId VARCHAR(255),
+  razorpayPaymentId VARCHAR(255),
+  payload LONGTEXT NOT NULL,
+  status VARCHAR(50) DEFAULT 'PENDING',
+  errorMessage VARCHAR(500),
+  processedAt DATETIME,
+  receivedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_razorpayOrderId (razorpayOrderId),
+  INDEX idx_event (event),
+  INDEX idx_receivedAt (receivedAt)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- TABLE 28: EMAIL_LOGS (if not exists)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS email_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  recipientEmail VARCHAR(191) NOT NULL,
+  subject VARCHAR(255) NOT NULL,
+  emailType VARCHAR(100) NOT NULL,
+  relatedEntityType VARCHAR(100),
+  relatedEntityId INT,
+  status VARCHAR(50) DEFAULT 'SENT',
+  errorMessage VARCHAR(500),
+  sentAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_recipientEmail (recipientEmail),
+  INDEX idx_emailType (emailType),
+  INDEX idx_sentAt (sentAt)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

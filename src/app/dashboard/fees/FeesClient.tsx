@@ -381,7 +381,14 @@ export default function FeesClient() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className="font-semibold text-[#444]">₹{Number(row.amount).toLocaleString()}</span>
+                        <div className="flex flex-col gap-1">
+                          <span className="font-semibold text-[#444]">₹{Number(row.amount).toLocaleString()}</span>
+                          {row.penaltyAmount && Number(row.penaltyAmount) > 0 && (
+                            <span className="text-xs text-red-600 font-medium">
+                              + ₹{Number(row.penaltyAmount).toLocaleString()} penalty
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className={`px-6 py-4 ${isOverdue ? "text-red-500 font-medium" : "text-gray-400"}`}>{new Date(row.dueDate).toLocaleDateString()}</td>
                       <td className="px-6 py-4 text-gray-400">{isPaid && row.paidAt ? new Date(row.paidAt).toLocaleDateString() : "—"}</td>
