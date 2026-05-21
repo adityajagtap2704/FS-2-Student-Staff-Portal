@@ -12,8 +12,13 @@ export async function GET(req: Request) {
 
     const user = session.user as any;
 
+<<<<<<< HEAD
     // Only HOD and NON_TEACHING_STAFF can view all students
     if (user.role !== "HOD" && user.role !== "NON_TEACHING_STAFF") {
+=======
+    // Only HOD can view all students
+    if (user.role !== "HOD") {
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -1,11 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
+<<<<<<< HEAD
 import { CheckCircle2, Clock, AlertCircle, XCircle, ArrowUpRight } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { useState } from "react";
+=======
+import { CheckCircle2, Clock, AlertCircle, XCircle } from "lucide-react";
+import Badge from "@/components/ui/Badge";
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 
 interface Installment {
   id: number;
@@ -19,12 +24,16 @@ interface Installment {
 interface InstallmentStatusProps {
   installments: Installment[];
   requestStatus: "PENDING" | "APPROVED" | "REJECTED";
+<<<<<<< HEAD
   onPaymentSuccess?: () => void;
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 }
 
 export default function InstallmentStatus({
   installments,
   requestStatus,
+<<<<<<< HEAD
   onPaymentSuccess,
 }: InstallmentStatusProps) {
   const toast = useToast();
@@ -36,11 +45,25 @@ export default function InstallmentStatus({
       case "OVERDUE": return <AlertCircle  size={16} className="text-red-500" />;
       case "PENDING": return <Clock        size={16} className="text-amber-500" />;
       default:        return null;
+=======
+}: InstallmentStatusProps) {
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "PAID":
+        return <CheckCircle2 size={16} className="text-emerald-600" />;
+      case "OVERDUE":
+        return <AlertCircle size={16} className="text-red-500" />;
+      case "PENDING":
+        return <Clock size={16} className="text-amber-500" />;
+      default:
+        return null;
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
+<<<<<<< HEAD
       case "PAID":    return <Badge variant="success" dot>Paid</Badge>;
       case "OVERDUE": return <Badge variant="danger"  dot>Overdue</Badge>;
       case "PENDING": return <Badge variant="warning" dot>Pending</Badge>;
@@ -124,6 +147,19 @@ export default function InstallmentStatus({
   };
 
   // ── REJECTED ──────────────────────────────────────────────────────────────
+=======
+      case "PAID":
+        return <Badge variant="success" dot>Paid</Badge>;
+      case "OVERDUE":
+        return <Badge variant="danger" dot>Overdue</Badge>;
+      case "PENDING":
+        return <Badge variant="warning" dot>Pending</Badge>;
+      default:
+        return null;
+    }
+  };
+
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   if (requestStatus === "REJECTED") {
     return (
       <motion.div
@@ -144,7 +180,10 @@ export default function InstallmentStatus({
     );
   }
 
+<<<<<<< HEAD
   // ── PENDING ───────────────────────────────────────────────────────────────
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   if (requestStatus === "PENDING") {
     return (
       <motion.div
@@ -165,14 +204,18 @@ export default function InstallmentStatus({
     );
   }
 
+<<<<<<< HEAD
   // ── APPROVED — show installment schedule with Pay buttons ─────────────────
   // Determine which installment is next to pay (first unpaid one in order)
   const nextPayableIndex = installments.findIndex(i => i.status !== "PAID");
 
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
+<<<<<<< HEAD
       className="space-y-2"
     >
       <div className="flex items-center gap-2 mb-1">
@@ -245,6 +288,40 @@ export default function InstallmentStatus({
           </motion.div>
         );
       })}
+=======
+      className="space-y-3"
+    >
+      <p className="text-sm font-medium text-gray-700">Installment Schedule</p>
+      
+      {installments.map((installment, index) => (
+        <motion.div
+          key={installment.id}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: index * 0.05 }}
+          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+        >
+          <div className="flex items-center gap-3 flex-1">
+            {getStatusIcon(installment.status)}
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                Installment {installment.installmentNumber}
+              </p>
+              <p className="text-xs text-gray-500">
+                Due: {new Date(installment.dueDate).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right">
+            <p className="text-sm font-semibold text-gray-900">
+              ₹{installment.amount.toLocaleString()}
+            </p>
+            {getStatusBadge(installment.status)}
+          </div>
+        </motion.div>
+      ))}
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     </motion.div>
   );
 }

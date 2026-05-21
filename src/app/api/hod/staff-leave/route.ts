@@ -16,7 +16,11 @@ export async function GET() {
       where:   { staffId: { not: null } },
       include: {
         staff: {
+<<<<<<< HEAD
           select: { id: true, name: true, email: true, role: true, assignedClass: true },
+=======
+          select: { id: true, name: true, email: true, assignedClass: true },
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
         },
       },
       orderBy: { submittedAt: "desc" },

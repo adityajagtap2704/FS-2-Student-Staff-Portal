@@ -36,6 +36,7 @@ const teacherLinks = [
 ];
 
 const hodLinks = [
+<<<<<<< HEAD
   { href: "/dashboard/hod",                     label: "HOD Dashboard",    icon: LayoutDashboard, exact: true  },
   { href: "/dashboard/hod?tab=leave",           label: "Leave Approval",   icon: Clock,           exact: true  },
   { href: "/dashboard/hod?tab=staff",           label: "Staff Portal",     icon: CheckCircle2,    exact: true  },
@@ -54,6 +55,18 @@ const nonTeachingStaffLinks = [
   { href: "/dashboard/leave",                          label: "Apply for Leave",        icon: CalendarOff,     exact: false },
   { href: "/dashboard/announcements",                  label: "Announcements",          icon: Megaphone,       exact: false },
   { href: "/dashboard/profile",                        label: "My Profile",             icon: UserCircle,      exact: false },
+=======
+  { href: "/dashboard/hod",                     label: "HOD Dashboard", icon: LayoutDashboard, exact: true  },
+  { href: "/dashboard/hod?tab=leave",           label: "Leave Approval", icon: Clock,          exact: true  },
+  { href: "/dashboard/hod?tab=admissions",      label: "Admissions",    icon: BookOpen,       exact: true  },
+  { href: "/dashboard/hod?tab=staff",           label: "Staff Portal",  icon: CheckCircle2,   exact: true  },
+  { href: "/dashboard/hod?tab=fees",            label: "Fees Management",icon: CreditCard,     exact: true  },
+  { href: "/dashboard/hod/timetable",           label: "Timetable",     icon: TableProperties, exact: false },
+  { href: "/dashboard/hod/class-assignments",   label: "Class Assignments", icon: Users,      exact: false },
+  { href: "/dashboard/hod/outstanding-payments",label: "Outstanding Fees", icon: CreditCard,  exact: false },
+  { href: "/dashboard/hod/documents",           label: "Document Verification", icon: FileText, exact: false },
+  { href: "/dashboard/announcements",           label: "Announcements", icon: Megaphone,       exact: false },
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 ];
 
 interface SidebarProps {
@@ -70,6 +83,7 @@ export default function Sidebar({ open, onClose, session }: SidebarProps) {
 
   const role = (session?.user as any)?.role ?? "STUDENT";
   const navLinks =
+<<<<<<< HEAD
     role === "HOD"                ? hodLinks                :
     role === "NON_TEACHING_STAFF" ? nonTeachingStaffLinks   :
     role === "CLASS_TEACHER"      ? teacherLinks            :
@@ -79,6 +93,15 @@ export default function Sidebar({ open, onClose, session }: SidebarProps) {
     role === "HOD"                ? "HOD Portal"            :
     role === "NON_TEACHING_STAFF" ? "Non-Teaching Staff"   :
     role === "CLASS_TEACHER"      ? "Staff Portal"          :
+=======
+    role === "HOD"           ? hodLinks     :
+    role === "CLASS_TEACHER" ? teacherLinks :
+    studentLinks;
+
+  const portalLabel =
+    role === "HOD"           ? "HOD Portal"     :
+    role === "CLASS_TEACHER" ? "Staff Portal"   :
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     "Student Portal";
 
   return (

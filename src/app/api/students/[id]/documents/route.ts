@@ -18,6 +18,7 @@ export async function GET(
     const studentId = parseInt((await params).id);
 
     // Students can only view their own documents
+<<<<<<< HEAD
     // HOD and NON_TEACHING_STAFF can view any student's documents
     if (user.role === "STUDENT" && parseInt(user.id) !== studentId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -25,6 +26,12 @@ export async function GET(
     if (user.role !== "STUDENT" && user.role !== "HOD" && user.role !== "NON_TEACHING_STAFF") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+=======
+    // HOD can view any student's documents
+    if (user.role === "STUDENT" && parseInt(user.id) !== studentId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 
     const documents = await db.studentDocument.findMany({
       where: { studentId },

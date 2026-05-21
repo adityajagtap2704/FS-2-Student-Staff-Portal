@@ -12,6 +12,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
+<<<<<<< HEAD
         if (!credentials?.email || !credentials?.password) {
           console.log(`[AUTH] ✗ Missing credentials`);
           return null;
@@ -103,6 +104,49 @@ export const authOptions: NextAuthOptions = {
           console.error(`[AUTH] ✗ Error during authentication:`, error);
           return null;
         }
+=======
+        if (!credentials?.email || !credentials?.password) return null;
+
+        // 1. Try Staff (CLASS_TEACHER / HOD) first
+        const staff = await db.staff.findUnique({
+          where: { email: credentials.email },
+        });
+
+        if (staff && staff.isActive) {
+          const passwordMatch = await comparePassword(credentials.password, staff.password);
+          if (passwordMatch) {
+            return {
+              id:           staff.id.toString(),
+              name:         staff.name,
+              email:        staff.email,
+              role:         staff.role,          // "CLASS_TEACHER" | "HOD"
+              assignedClass: staff.assignedClass ?? undefined,
+            };
+          }
+        }
+
+        // 2. Try Student - Login with Email + Password (set during account setup)
+        const student = await db.student.findUnique({
+          where: { email: credentials.email },
+        });
+
+        if (student && student.isActive && student.password) {
+          const passwordMatch = await comparePassword(credentials.password, student.password);
+          console.log(`[AUTH] Student login attempt: ${credentials.email}, Password match: ${passwordMatch}`);
+          if (passwordMatch) {
+            return {
+              id:    student.id.toString(),
+              name:  student.name,
+              email: student.email,
+              role:  "STUDENT",
+            };
+          }
+        } else {
+          console.log(`[AUTH] Student not found or inactive: ${credentials.email}, Found: ${!!student}, Active: ${student?.isActive}, Has password: ${!!student?.password}`);
+        }
+
+        return null;
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
       },
     }),
   ],

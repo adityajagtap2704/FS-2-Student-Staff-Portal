@@ -38,7 +38,11 @@ CREATE TABLE staff (
   name VARCHAR(191) NOT NULL,
   email VARCHAR(191) UNIQUE NOT NULL,
   password VARCHAR(191) NOT NULL,
+<<<<<<< HEAD
   role ENUM('STUDENT','CLASS_TEACHER','NON_TEACHING_STAFF','HOD') DEFAULT 'CLASS_TEACHER',
+=======
+  role ENUM('STUDENT','CLASS_TEACHER','HOD') DEFAULT 'CLASS_TEACHER',
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   assignedClass VARCHAR(191),
   isActive BOOLEAN DEFAULT TRUE,
   approvedBy VARCHAR(191),
@@ -258,7 +262,11 @@ CREATE TABLE staff_signup_temp (
   email VARCHAR(191) UNIQUE NOT NULL,
   name VARCHAR(191) NOT NULL,
   password VARCHAR(191) NOT NULL,
+<<<<<<< HEAD
   role ENUM('STUDENT','CLASS_TEACHER','NON_TEACHING_STAFF','HOD') DEFAULT 'CLASS_TEACHER',
+=======
+  role ENUM('STUDENT','CLASS_TEACHER','HOD') DEFAULT 'CLASS_TEACHER',
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   assignedClass VARCHAR(191),
   expiresAt DATETIME(3) NOT NULL,
   createdAt DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)
@@ -506,6 +514,7 @@ VALUES
 ('ADM-2026-005', 'Aryan Kapoor', 'Rajiv Kapoor', 'rajiv.kapoor@gmail.com', '9876505678', 'Class 11', 'PENDING', NOW(), NULL, NULL);
 
 -- ============================================================================
+<<<<<<< HEAD
 -- INSERT STAFF (13 records)
 -- All passwords stored as plain text
 -- HOD password       : hod123
@@ -531,6 +540,20 @@ VALUES
 ('Mrs. Anjali Verma',  'anjali.finance@kalnet.edu',    'NonTeaching@2026','NON_TEACHING_STAFF', NULL,       1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
 ('Ms. Neha Patel',     'neha.admissions@kalnet.edu',   'NonTeaching@2026','NON_TEACHING_STAFF', NULL,       1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
 ('Mr. Vikram Singh',   'vikram.fees@kalnet.edu',       'NonTeaching@2026','NON_TEACHING_STAFF', NULL,       1, 'hod@kalnet.edu', NOW(), NOW(), NOW());
+=======
+-- INSERT STAFF (8 records)
+-- ============================================================================
+INSERT INTO staff (name, email, password, role, assignedClass, isActive, createdAt, updatedAt)
+VALUES
+('Mrs. Lakshmi Devi', 'lakshmi@kalnet.edu', 'lakshmi123', 'CLASS_TEACHER', 'Class 6', 1, NOW(), NOW()),
+('Mr. Suresh Babu', 'suresh@kalnet.edu', 'suresh123', 'CLASS_TEACHER', 'Class 7', 1, NOW(), NOW()),
+('Mrs. Anita Sharma', 'anita@kalnet.edu', 'anita123', 'CLASS_TEACHER', 'Class 8', 1, NOW(), NOW()),
+('Mr. Ravi Teja', 'ravi@kalnet.edu', 'ravi123', 'CLASS_TEACHER', 'Class 9', 1, NOW(), NOW()),
+('Mrs. Preethi Nair', 'preethi@kalnet.edu', 'preethi123', 'CLASS_TEACHER', 'Class 10', 1, NOW(), NOW()),
+('Mr. Karthik Reddy', 'karthik@kalnet.edu', 'karthik123', 'CLASS_TEACHER', 'Class 11', 1, NOW(), NOW()),
+('Mrs. Sunita Rao', 'sunita@kalnet.edu', 'sunita123', 'CLASS_TEACHER', 'Class 12', 1, NOW(), NOW()),
+('Dr. Venkat Prasad', 'hod@kalnet.edu', 'hod123', 'HOD', NULL, 1, NOW(), NOW());
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 
 -- ============================================================================
 -- INSERT STUDENTS (70 records - 10 per Class for Classes 6-12)
@@ -684,7 +707,10 @@ SELECT id, 'GENERAL', 'Welcome to KALNET', 'Welcome to KALNET Student Portal. Pl
 -- ============================================================================
 -- INSERT LEAVE REQUESTS (15 records)
 -- ============================================================================
+<<<<<<< HEAD
 -- Student leave requests (studentId set, staffId NULL)
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 INSERT INTO leave_requests (studentId, leaveType, fromDate, toDate, reason, status, submittedAt)
 VALUES
 (1, 'Medical', '2026-04-01', '2026-04-03', 'Medical checkup', 'APPROVED', NOW()),
@@ -704,6 +730,7 @@ VALUES
 (15, 'Medical', '2026-08-05', '2026-08-07', 'Vaccination', 'APPROVED', NOW());
 
 -- ============================================================================
+<<<<<<< HEAD
 -- Staff leave requests (staffId set, studentId NULL)
 -- Class Teachers (staffId 1-7) and Non-Teaching Staff (staffId 9-13)
 -- ============================================================================
@@ -727,6 +754,8 @@ VALUES
 (13, 'Family Function',  '2026-05-21', '2026-05-22', 'Engagement ceremony',       'PENDING',  NOW());
 
 -- ============================================================================
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 -- INSERT OTP RECORDS (5 records)
 -- ============================================================================
 INSERT INTO otps (email, code, status, expiresAt, createdAt)
@@ -775,6 +804,7 @@ VALUES
 (10, 'Passport', 'rehan_passport.pdf', 'https://storage.example.com/docs/rehan_passport.pdf', 3072000, NOW(), 'PENDING', NULL, NULL);
 
 -- ============================================================================
+<<<<<<< HEAD
 -- INSERT STAFF LEAVE BALANCE (13 records - all staff including non-teaching)
 -- ============================================================================
 INSERT INTO staff_leave_balance (staffId, year, totalYearlyLeave, usedLeave, remainingLeave, monthlyUsed)
@@ -792,6 +822,20 @@ VALUES
 (11, 2026, 20, 0, 20, 0),
 (12, 2026, 20, 0, 20, 0),
 (13, 2026, 20, 0, 20, 0);
+=======
+-- INSERT STAFF LEAVE BALANCE (8 records)
+-- ============================================================================
+INSERT INTO staff_leave_balance (staffId, year, totalYearlyLeave, usedLeave, remainingLeave, monthlyUsed)
+VALUES
+(1, 2026, 20, 3, 17, 1),
+(2, 2026, 20, 0, 20, 0),
+(3, 2026, 20, 5, 15, 2),
+(4, 2026, 20, 2, 18, 1),
+(5, 2026, 20, 4, 16, 1),
+(6, 2026, 20, 1, 19, 0),
+(7, 2026, 20, 6, 14, 2),
+(8, 2026, 20, 8, 12, 3);
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 
 -- ============================================================================
 -- INSERT CLASS ASSIGNMENTS (7 records)
@@ -843,6 +887,7 @@ WHERE f.status = 'PAID'
 LIMIT 35;
 
 -- ============================================================================
+<<<<<<< HEAD
 -- INSERT INSTALLMENT REQUESTS (sample data - 3 requests)
 -- Flow: Student submits → Non-Teaching Staff reviews → Approve/Reject
 -- Approved requests also have installment records created
@@ -864,6 +909,8 @@ VALUES
 (12, 2, 2, 7500.00, DATE_ADD(NOW(), INTERVAL 30 DAY),         0.00, 'PENDING', NOW(), NOW());
 
 -- ============================================================================
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 -- INSERT TIMETABLE SLOTS (Time Periods)
 -- ============================================================================
 INSERT INTO timetable_slots (slotNumber, startTime, endTime, isBreak, breakLabel) VALUES

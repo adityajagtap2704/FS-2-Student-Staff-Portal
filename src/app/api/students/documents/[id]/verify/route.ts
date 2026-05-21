@@ -14,9 +14,15 @@ export async function PATCH(
     }
 
     const user = session.user as any;
+<<<<<<< HEAD
 
     // Only HOD and NON_TEACHING_STAFF can verify documents
     if (user.role !== "HOD" && user.role !== "NON_TEACHING_STAFF") {
+=======
+    
+    // Only HOD can verify documents
+    if (user.role !== "HOD") {
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -43,18 +49,27 @@ export async function PATCH(
       );
     }
 
+<<<<<<< HEAD
     // Update document status — cast verifiedBy to Int to match schema
+=======
+    // Update document status
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     const updated = await db.studentDocument.update({
       where: { id: documentId },
       data: {
         status,
+<<<<<<< HEAD
         verifiedBy: parseInt(user.id),
+=======
+        verifiedBy: user.id,
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
         verifiedAt: new Date(),
         rejectionReason: status === "REJECTED" ? rejectionReason : null,
       },
       include: { student: true },
     });
 
+<<<<<<< HEAD
     // Send notification to the student — use GENERAL type for broad compatibility
     const isVerified = status === "VERIFIED";
     try {
@@ -76,6 +91,8 @@ export async function PATCH(
       console.error("Notification creation failed (non-fatal):", notifError);
     }
 
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     return NextResponse.json({
       success: true,
       document: updated,

@@ -3,13 +3,17 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import PageLayout from "@/components/layout/PageLayout";
 import ProfileClient from "./ProfileClient";
+<<<<<<< HEAD
 import StaffProfileClient from "./StaffProfileClient";
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 import db from "@/lib/db";
 
 export default async function ProfilePage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
+<<<<<<< HEAD
   const user = session.user as { id: string; role: string };
   const userId = parseInt(user.id);
 
@@ -31,6 +35,13 @@ export default async function ProfilePage() {
   // Otherwise, show student profile
   const student = await db.student.findUnique({
     where: { id: userId },
+=======
+  const user = session.user as { id: string };
+  const studentId = parseInt(user.id);
+
+  const student = await db.student.findUnique({
+    where: { id: studentId },
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     include: {
       fees: true,
       leaveRequests: true,

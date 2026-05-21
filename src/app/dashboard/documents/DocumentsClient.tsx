@@ -44,6 +44,7 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
   const [selectedType, setSelectedType] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+<<<<<<< HEAD
   const loadDocuments = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
@@ -75,14 +76,35 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
       console.error(error);
     } finally {
       if (!silent) setLoading(false);
+=======
+  const loadDocuments = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/students/${studentId}/documents`);
+      if (!res.ok) throw new Error("Failed to load documents");
+      const data = await res.json();
+      // Sort by uploadedAt descending (newest first)
+      const sorted = data.sort((a: Document, b: Document) => 
+        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+      );
+      setDocuments(sorted);
+    } catch (error) {
+      toast.error("Failed to load documents", "Please refresh the page");
+      console.error(error);
+    } finally {
+      setLoading(false);
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     }
   };
 
   useEffect(() => {
     loadDocuments();
+<<<<<<< HEAD
     // Poll every 15 seconds for status updates
     const interval = setInterval(() => loadDocuments(true), 15000);
     return () => clearInterval(interval);
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

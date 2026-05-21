@@ -10,7 +10,11 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     const user = session?.user as any;
     
+<<<<<<< HEAD
     if (!session || !["CLASS_TEACHER", "HOD", "NON_TEACHING_STAFF"].includes(user?.role)) {
+=======
+    if (!session || (user?.role !== "CLASS_TEACHER" && user?.role !== "HOD")) {
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

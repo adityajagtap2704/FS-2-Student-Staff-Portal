@@ -16,7 +16,11 @@ export default function StaffSignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+<<<<<<< HEAD
   const [role, setRole] = useState<"CLASS_TEACHER" | "NON_TEACHING_STAFF">("CLASS_TEACHER");
+=======
+  const [role, setRole] = useState<"CLASS_TEACHER">("CLASS_TEACHER");
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   const [assignedClass, setAssignedClass] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -79,8 +83,13 @@ export default function StaffSignUpPage() {
           name,
           email,
           password,
+<<<<<<< HEAD
           role,
           assignedClass: role === "CLASS_TEACHER" ? assignedClass : null,
+=======
+          role: "CLASS_TEACHER", // Always send CLASS_TEACHER
+          assignedClass,
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
         }),
       });
 
@@ -149,7 +158,11 @@ export default function StaffSignUpPage() {
             <div className="p-8 text-center">
               <div className="text-5xl mb-4">✅</div>
               <p className="text-gray-600 mb-2">Your staff account has been created!</p>
+<<<<<<< HEAD
               <p className="text-gray-500 mb-6">Your account is now pending HOD approval. You will receive an email once approved.</p>
+=======
+              <p className="text-gray-500 mb-6">Your account is now active and pending HOD approval.</p>
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
               <p className="text-sm text-gray-400 mb-6">Redirecting to login...</p>
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
@@ -224,6 +237,7 @@ export default function StaffSignUpPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
+<<<<<<< HEAD
                     Staff Role *
                   </label>
                   <select
@@ -247,6 +261,20 @@ export default function StaffSignUpPage() {
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.3 }}
                   >
+=======
+                    Role *
+                  </label>
+                  <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
+                    Class Teacher
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Staff members register as Class Teachers. Additional roles are assigned separately.
+                  </p>
+                </div>
+
+                {role === "CLASS_TEACHER" && (
+                  <div>
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Assigned Class *
                     </label>
@@ -263,7 +291,11 @@ export default function StaffSignUpPage() {
                         </option>
                       ))}
                     </select>
+<<<<<<< HEAD
                   </motion.div>
+=======
+                  </div>
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
                 )}
 
                 <div>

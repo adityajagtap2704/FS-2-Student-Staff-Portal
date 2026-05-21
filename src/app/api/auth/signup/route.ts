@@ -47,9 +47,15 @@ export async function POST(req: Request) {
     }
 
     // Validate role
+<<<<<<< HEAD
     if (!["CLASS_TEACHER", "NON_TEACHING_STAFF"].includes(role)) {
       return NextResponse.json(
         { error: "Invalid role. Must be CLASS_TEACHER or NON_TEACHING_STAFF" },
+=======
+    if (!["CLASS_TEACHER", "HOD"].includes(role)) {
+      return NextResponse.json(
+        { error: "Invalid role. Must be CLASS_TEACHER or HOD" },
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
         { status: 400 }
       );
     }
@@ -62,6 +68,7 @@ export async function POST(req: Request) {
       );
     }
 
+<<<<<<< HEAD
     // NON_TEACHING_STAFF should not have assignedClass
     if (role === "NON_TEACHING_STAFF" && assignedClass) {
       return NextResponse.json(
@@ -70,6 +77,8 @@ export async function POST(req: Request) {
       );
     }
 
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     // Check if email already exists in Staff
     const existingStaff = await db.staff.findUnique({
       where: { email: normalizedEmail },

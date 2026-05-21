@@ -20,10 +20,13 @@ export default async function DashboardPage() {
     redirect("/dashboard/staff");
   }
 
+<<<<<<< HEAD
   if (user.role === "NON_TEACHING_STAFF") {
     redirect("/dashboard/non-teaching-staff");
   }
 
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   // Only students can access this dashboard
   if (user.role !== "STUDENT") {
     redirect("/login");

@@ -14,12 +14,19 @@ export async function createNotificationNoDuplicates(
   timeWindowMinutes: number = 60
 ): Promise<any> {
   try {
+<<<<<<< HEAD
     // Check for recent duplicate — match on type AND title to avoid cross-topic suppression
+=======
+    // Check for recent duplicate notification
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     const recentNotification = await db.notification.findFirst({
       where: {
         studentId,
         type,
+<<<<<<< HEAD
         title,
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
         createdAt: {
           gte: new Date(Date.now() - timeWindowMinutes * 60 * 1000),
         },
@@ -27,10 +34,17 @@ export async function createNotificationNoDuplicates(
       orderBy: { createdAt: "desc" },
     });
 
+<<<<<<< HEAD
     // If exact duplicate found within time window, return existing notification
     if (recentNotification) {
       console.log(
         `[NOTIFICATION] Duplicate prevented for student ${studentId}, type ${type}, title "${title}"`
+=======
+    // If duplicate found within time window, return existing notification
+    if (recentNotification) {
+      console.log(
+        `[NOTIFICATION] Duplicate prevented for student ${studentId}, type ${type}`
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
       );
       return recentNotification;
     }
@@ -46,7 +60,11 @@ export async function createNotificationNoDuplicates(
     });
 
     console.log(
+<<<<<<< HEAD
       `[NOTIFICATION] Created notification for student ${studentId}, type ${type}, title "${title}"`
+=======
+      `[NOTIFICATION] Created notification for student ${studentId}, type ${type}`
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     );
     return notification;
   } catch (error) {

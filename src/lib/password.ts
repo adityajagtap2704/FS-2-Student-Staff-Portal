@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Store password as plain text
 export async function hashPassword(password: string): Promise<string> {
   // Simply return the password as-is (plain text)
@@ -7,6 +8,17 @@ export async function hashPassword(password: string): Promise<string> {
 // Compare password with stored plain text password
 export async function comparePassword(password: string, storedPassword: string): Promise<boolean> {
   // Direct string comparison for plain text passwords
+=======
+// Store passwords as plain text (for testing only)
+
+// Hash a password - returns password as-is for testing
+export async function hashPassword(password: string): Promise<string> {
+  return password;
+}
+
+// Compare password with stored password
+export async function comparePassword(password: string, storedPassword: string): Promise<boolean> {
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   return password === storedPassword;
 }
 

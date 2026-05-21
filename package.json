@@ -6,9 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+<<<<<<< HEAD
     "lint": "next lint",
     "migrate:passwords": "node scripts/migrate-passwords.js",
     "add:non-teaching-staff": "node scripts/add-non-teaching-staff.js"
+=======
+    "lint": "next lint"
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.500.0",

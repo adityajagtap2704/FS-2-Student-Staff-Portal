@@ -168,6 +168,7 @@ export default function HODStaffPage() {
     }
   };
 
+<<<<<<< HEAD
   const getRoleLabel = (role: string) => {
     switch (role) {
       case "CLASS_TEACHER":
@@ -186,6 +187,11 @@ export default function HODStaffPage() {
   const approvedClassTeachers = approvedStaff.filter((s) => s.role === "CLASS_TEACHER");
   const approvedNonTeachingStaff = approvedStaff.filter((s) => s.role === "NON_TEACHING_STAFF");
 
+=======
+  const pendingStaff = staff.filter((s) => s.approvalStatus === "PENDING");
+  const approvedStaff = staff.filter((s) => s.approvalStatus === "APPROVED");
+
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   const displayStaff = activeTab === "pending" ? pendingStaff : approvedStaff;
 
   if (loading) {
@@ -264,11 +270,19 @@ export default function HODStaffPage() {
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-gray-900">{member.name}</h3>
                         <p className="text-sm text-gray-600 mt-1">{member.email}</p>
+<<<<<<< HEAD
                         <div className="flex gap-4 mt-3 flex-wrap">
                           <span className="inline-block px-3 py-1 bg-primary-50 text-primary text-xs font-semibold rounded-full">
                             {getRoleLabel(member.role)}
                           </span>
                           {member.role === "CLASS_TEACHER" && member.assignedClass && (
+=======
+                        <div className="flex gap-4 mt-3">
+                          <span className="inline-block px-3 py-1 bg-primary-50 text-primary text-xs font-semibold rounded-full">
+                            {member.role === "CLASS_TEACHER" ? "Class Teacher" : "HOD"}
+                          </span>
+                          {member.assignedClass && (
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
                             <span className="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full">
                               {member.assignedClass}
                             </span>
@@ -305,6 +319,7 @@ export default function HODStaffPage() {
                             </motion.button>
                           </>
                         ) : (
+<<<<<<< HEAD
                           member.role === "CLASS_TEACHER" && (
                             <motion.button
                               whileHover={{ scale: 1.05 }}
@@ -320,6 +335,21 @@ export default function HODStaffPage() {
                               <Edit2 size={20} />
                             </motion.button>
                           )
+=======
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => {
+                              setSelectedStaff(member);
+                              setNewClass(member.assignedClass || "");
+                              setShowModal(true);
+                            }}
+                            className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
+                            title="Reassign Class"
+                          >
+                            <Edit2 size={20} />
+                          </motion.button>
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
                         )}
                       </div>
                     </div>

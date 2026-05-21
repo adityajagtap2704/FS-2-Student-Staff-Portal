@@ -12,7 +12,11 @@ export default async function LeavePage() {
 
   const user = session.user as any;
   const userId = parseInt(user.id);
+<<<<<<< HEAD
   const isStaff = user.role === "CLASS_TEACHER" || user.role === "HOD" || user.role === "NON_TEACHING_STAFF";
+=======
+  const isStaff = user.role === "CLASS_TEACHER" || user.role === "HOD";
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
 
   // Fetch leave requests based on user type
   const leaveRequests = await db.leaveRequest.findMany({

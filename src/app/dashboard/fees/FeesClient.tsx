@@ -101,6 +101,7 @@ export default function FeesClient() {
     reloadFees();
   }, []);
 
+<<<<<<< HEAD
   // Auto-refresh every 5 seconds to catch installment status updates
   useEffect(() => {
     const interval = setInterval(() => {
@@ -115,6 +116,15 @@ export default function FeesClient() {
       clearInterval(interval);
       window.removeEventListener("focus", onFocus);
     };
+=======
+  // Auto-refresh every 15 seconds to catch payment updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      reloadFees();
+    }, 15000); // 15 seconds
+
+    return () => clearInterval(interval);
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
   }, []);
 
   const loadRazorpay = async () => {
@@ -447,7 +457,10 @@ export default function FeesClient() {
                           <InstallmentStatus
                             installments={installmentData[row.id]?.installments || []}
                             requestStatus={installmentData[row.id]?.request?.status || "PENDING"}
+<<<<<<< HEAD
                             onPaymentSuccess={reloadFees}
+=======
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
                           />
                         </td>
                       </tr>

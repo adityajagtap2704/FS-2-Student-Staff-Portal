@@ -194,12 +194,20 @@ export async function POST(req: Request) {
 
 export async function GET(req: Request) {
   try {
+<<<<<<< HEAD
     // Protect — only HOD and NON_TEACHING_STAFF can list all admissions
+=======
+    // Protect — only HOD can list all admissions
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
     const { getServerSession } = await import("next-auth");
     const { authOptions }      = await import("@/lib/auth");
     const session = await getServerSession(authOptions);
     const user    = session?.user as any;
+<<<<<<< HEAD
     if (!session || (user?.role !== "HOD" && user?.role !== "NON_TEACHING_STAFF")) {
+=======
+    if (!session || user?.role !== "HOD") {
+>>>>>>> c529c5b0c617371b0eb19f3790fece2d3b31c17d
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
