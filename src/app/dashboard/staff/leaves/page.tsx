@@ -1,0 +1,28 @@
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
+import { authOptions } from "@/lib/auth";
+import PageLayout from "@/components/layout/PageLayout";
+import StudentLeavesClient from "./StudentLeavesClient";
+
+export const metadata = {
+  title: "Student Leaves",
+};
+
+export default async function StudentLeavesPage() {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    redirect("/login");
+  }
+
+  const user = session.user as any;
+  if (user.role !== "CLASS_TEACHER" && user.role !== "HOD") {
+    redirect("/dashboard");
+  }
+
+  return (
+    <PageLayout session={session} title="Student Leaves">
+      <StudentLeavesClient session={session} />
+    </PageLayout>
+  );
+}
