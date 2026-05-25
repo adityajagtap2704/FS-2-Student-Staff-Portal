@@ -19,12 +19,11 @@ import { staggerContainer, easeOut } from "@/components/motion/MotionConfig";
 
 interface Props { session: Session }
 
-type Tab = "overview" | "leave" | "admissions" | "staff" | "fees" | "announcements";
+type Tab = "overview" | "leave" | "staff" | "fees" | "announcements";
 
 const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
   { key: "overview",      label: "Overview",      icon: BookOpen    },
   { key: "leave",         label: "Leave",         icon: Clock       },
-  { key: "admissions",    label: "Admissions",    icon: Users       },
   { key: "staff",         label: "Staff",         icon: CheckCircle2},
   { key: "fees",          label: "Fees",          icon: CreditCard  },
   { key: "announcements", label: "Announcements", icon: Megaphone   },
@@ -75,7 +74,7 @@ function StaffLeaveSection() {
   const pendingCount = staffLeaves.filter(l => l.status === "PENDING").length;
 
   return (
-    <Card title="Staff Leave Requests" subtitle="Leave requests from class teachers" noPadding delay={0.2}>
+    <Card title="Staff Leave Requests" subtitle="Leave requests from all staff members" noPadding delay={0.2}>
       {/* Filter bar */}
       <div className="flex items-center gap-2 px-4 pt-4 pb-2 flex-wrap">
         {(["PENDING","ALL","APPROVED","REJECTED"] as const).map(f => (
@@ -104,7 +103,7 @@ function StaffLeaveSection() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-50">
-                  {["Teacher", "Class", "Type", "From", "To", "Days", "Reason", "Status", "Action"].map(h => (
+                  {["Teacher", "Role", "Type", "From", "To", "Days", "Reason", "Status", "Action"].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -116,8 +115,8 @@ function StaffLeaveSection() {
                     <tr key={lr.id} className={`hover:bg-gray-50/50 transition-colors ${lr.status === "PENDING" ? "bg-amber-50/30" : ""}`}>
                       <td className="px-4 py-3 font-medium text-[#444] whitespace-nowrap">{lr.staff?.name ?? "—"}</td>
                       <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded-lg bg-primary-50 text-primary text-xs font-semibold">
-                          {lr.staff?.assignedClass ?? "—"}
+                        <span className={`px-2 py-0.5 rounded-lg text-xs font-semibold ${lr.staff?.role === "NON_TEACHING_STAFF" ? "bg-purple-50 text-purple-600" : "bg-primary-50 text-primary"}`}>
+                          {lr.staff?.role === "NON_TEACHING_STAFF" ? "Non-Teaching" : (lr.staff?.assignedClass ?? "—")}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{lr.leaveType}</td>
@@ -264,8 +263,8 @@ export default function HodClient({ session }: Props) {
           .catch(() => setLoadingL(false));
       }
     }
-    if (activeTab === "overview" || activeTab === "admissions") {
-      if (!loadedTabs.has("admissions") && !loadedTabs.has("overview")) {
+    if (activeTab === "overview") {
+      if (!loadedTabs.has("overview")) {
         setLoadingA(true);
         fetch("/api/admissions")
           .then(r => r.json()).then(d => { setAdmissions(Array.isArray(d) ? d : []); setLoadingA(false); })
@@ -647,92 +646,6 @@ export default function HodClient({ session }: Props) {
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          ADMISSIONS TAB
-      ══════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "admissions" && (
-        <div className="space-y-4">
-          {/* Filter buttons */}
-          <div className="flex gap-2 flex-wrap">
-            {(["ALL", "PENDING", "APPROVED", "REJECTED"] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => { setAdmFilter(f); setAdmPage(1); }}
-                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 ${
-                  admFilter === f
-                    ? "bg-primary text-white shadow-glow"
-                    : "bg-white border border-gray-200 text-gray-500 hover:border-primary hover:text-primary"
-                }`}
-              >
-                {f} {f !== "ALL" && <span className="ml-1 opacity-70">({admissions.filter(a => a.status === f).length})</span>}
-              </button>
-            ))}
-          </div>
-
-          <Card title="Admission Enquiries" subtitle="All submitted enquiries" noPadding delay={0.1}>
-            {loadingA ? (
-              <SkeletonTable rows={5} />
-            ) : (
-              <>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-50">
-                      {["Ref No.", "Student", "Parent", "Email", "Phone", "Class", "Submitted", "Status", "Action"].map(h => (
-                        <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {paginatedAdmissions.map((a) => (
-                      <tr key={a.id} className={`hover:bg-gray-50/50 transition-colors ${a.status === "PENDING" ? "bg-blue-50/20" : ""}`}>
-                        <td className="px-4 py-3 font-mono text-xs text-gray-400">{a.referenceNumber}</td>
-                        <td className="px-4 py-3 font-medium text-[#444] whitespace-nowrap">{a.studentName}</td>
-                        <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{a.parentName}</td>
-                        <td className="px-4 py-3 text-gray-400 text-xs">{a.email}</td>
-                        <td className="px-4 py-3 text-gray-400">{a.phone}</td>
-                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{a.classApplied}</td>
-                        <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{new Date(a.submittedAt).toLocaleDateString()}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant={a.status === "APPROVED" ? "success" : a.status === "REJECTED" ? "danger" : "warning"} dot>
-                            {a.status.charAt(0) + a.status.slice(1).toLowerCase()}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          {a.status === "PENDING" ? (
-                            <div className="flex items-center gap-1.5">
-                              <Button size="xs" variant="secondary" onClick={() => handleAdmissionAction(a.id, "APPROVED")}>Approve</Button>
-                              <Button size="xs" variant="danger"    onClick={() => handleAdmissionAction(a.id, "REJECTED")}>Reject</Button>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-300">Done</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                    {paginatedAdmissions.length === 0 && (
-                      <tr><td colSpan={9} className="px-4 py-8 text-center text-gray-400">No enquiries found.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-              {admTotalPages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-50">
-                  <p className="text-xs text-gray-400">{filteredAdmissions.length} total · Page {admPage} of {admTotalPages}</p>
-                  <div className="flex gap-1.5">
-                    <button onClick={() => setAdmPage(p => Math.max(1, p - 1))} disabled={admPage === 1}
-                      className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-500 disabled:opacity-40 hover:bg-gray-200 transition-colors">Prev</button>
-                    <button onClick={() => setAdmPage(p => Math.min(admTotalPages, p + 1))} disabled={admPage === admTotalPages}
-                      className="px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-500 disabled:opacity-40 hover:bg-gray-200 transition-colors">Next</button>
-                  </div>
-                </div>
-              )}
-              </>
-            )}
-          </Card>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════════════════
           STAFF TAB
       ══════════════════════════════════════════════════════════════════════ */}
       {activeTab === "staff" && (
@@ -777,7 +690,7 @@ export default function HodClient({ session }: Props) {
                 }`}
               >
                 <Users size={16} />
-                All Class Teachers
+                All Staff
               </button>
             </div>
 
@@ -808,7 +721,7 @@ export default function HodClient({ session }: Props) {
                             <td className="px-4 py-3 text-gray-400">{s.email}</td>
                             <td className="px-4 py-3">
                               <span className="px-2.5 py-1 rounded-lg bg-primary-50 text-primary text-xs font-semibold">
-                                {s.role === "CLASS_TEACHER" ? "Class Teacher" : "HOD"}
+                                {s.role === "CLASS_TEACHER" ? "Class Teacher" : s.role === "NON_TEACHING_STAFF" ? "Non-Teaching Staff" : s.role}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-gray-500">{s.assignedClass || "—"}</td>
@@ -818,7 +731,7 @@ export default function HodClient({ session }: Props) {
                                   // Approve logic here
                                   showConfirm(
                                     "Approve Staff",
-                                    `Approve ${s.name} as ${s.role === "CLASS_TEACHER" ? "Class Teacher" : "HOD"}?`,
+                                    `Approve ${s.name} as ${s.role === "CLASS_TEACHER" ? "Class Teacher" : s.role === "NON_TEACHING_STAFF" ? "Non-Teaching Staff" : s.role}?`,
                                     async () => {
                                       closeConfirm();
                                       const res = await fetch(`/api/hod/staff/${s.id}/approve`, {
@@ -870,11 +783,11 @@ export default function HodClient({ session }: Props) {
             {/* Approved Staff List */}
             {leaveSubTab === "staff" && (
               <div className="space-y-4">
-                <Card title="Approved Staff" subtitle="Active class teachers and their assignments" noPadding delay={0.1}>
+                <Card title="Approved Staff" subtitle="Active staff members and their assignments" noPadding delay={0.1}>
                   {loadingS ? (
                     <SkeletonTable rows={4} />
                   ) : (() => {
-                    const approvedTeachers = staff.filter(s => s.isActive && s.role === "CLASS_TEACHER");
+                    const approvedTeachers = staff.filter(s => s.isActive && (s.role === "CLASS_TEACHER" || s.role === "NON_TEACHING_STAFF"));
                     const approvedPages = Math.max(1, Math.ceil(approvedTeachers.length / TEACHERS_PAGE_SIZE));
                     const paginatedApproved = approvedTeachers.slice((teachersPage - 1) * TEACHERS_PAGE_SIZE, teachersPage * TEACHERS_PAGE_SIZE);
 
@@ -884,7 +797,7 @@ export default function HodClient({ session }: Props) {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-gray-50">
-                                {["Name", "Email", "Assigned Class", "Students", "Pending Leave", "Actions"].map(h => (
+                                {["Name", "Email", "Role", "Assigned Class", "Students", "Pending Leave"].map(h => (
                                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                                 ))}
                               </tr>
@@ -895,11 +808,20 @@ export default function HodClient({ session }: Props) {
                                   <td className="px-4 py-3 font-medium text-[#444]">{s.name}</td>
                                   <td className="px-4 py-3 text-gray-400">{s.email}</td>
                                   <td className="px-4 py-3">
-                                    <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold">
-                                      {s.assignedClass ?? "Unassigned"}
+                                    <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${s.role === "NON_TEACHING_STAFF" ? "bg-purple-50 text-purple-600" : "bg-primary-50 text-primary"}`}>
+                                      {s.role === "CLASS_TEACHER" ? "Class Teacher" : "Non-Teaching Staff"}
                                     </span>
                                   </td>
-                                  <td className="px-4 py-3 text-gray-500">{s.studentCount || 0}</td>
+                                  <td className="px-4 py-3">
+                                    {s.role === "CLASS_TEACHER" ? (
+                                      <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold">
+                                        {s.assignedClass ?? "Unassigned"}
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs text-gray-300">—</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-500">{s.role === "CLASS_TEACHER" ? (s.studentCount || 0) : "—"}</td>
                                   <td className="px-4 py-3">
                                     {s.pendingLeaveCount > 0 ? (
                                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
@@ -909,19 +831,10 @@ export default function HodClient({ session }: Props) {
                                       <span className="text-xs text-gray-300">None</span>
                                     )}
                                   </td>
-                                  <td className="px-4 py-3">
-                                    <Button size="xs" variant="secondary" onClick={() => {
-                                      setReassignModal({
-                                        open: true,
-                                        staff: s,
-                                        selectedClass: s.assignedClass || "",
-                                      });
-                                    }}>Reassign</Button>
-                                  </td>
                                 </tr>
                               ))}
                               {paginatedApproved.length === 0 && (
-                                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No approved class teachers found.</td></tr>
+                                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No approved staff found.</td></tr>
                               )}
                             </tbody>
                           </table>
@@ -945,13 +858,13 @@ export default function HodClient({ session }: Props) {
             )}
           </motion.div>
 
-          {/* All Class Teachers List - Show when All Class Teachers tab is active */}
+          {/* All Staff List - Show when All Staff tab is active */}
           {leaveSubTab === "admin" && (
-            <Card title="All Class Teachers" subtitle="Complete list of all active class teachers" noPadding delay={0.2}>
+            <Card title="All Active Staff" subtitle="Complete list of all active staff members" noPadding delay={0.2}>
               {loadingS ? (
                 <SkeletonTable rows={4} />
               ) : (() => {
-                const filteredTeachers = staff.filter(s => s.role === "CLASS_TEACHER" && s.isActive);
+                const filteredTeachers = staff.filter(s => s.isActive);
                 const totalPages = Math.max(1, Math.ceil(filteredTeachers.length / TEACHERS_PAGE_SIZE));
                 const paginatedTeachers = filteredTeachers.slice((teachersPage - 1) * TEACHERS_PAGE_SIZE, teachersPage * TEACHERS_PAGE_SIZE);
 
@@ -961,7 +874,7 @@ export default function HodClient({ session }: Props) {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-gray-50">
-                            {["Name", "Email", "Assigned Class", "Students", "Pending Leave", "Status"].map(h => (
+                            {["Name", "Email", "Role", "Assigned Class", "Students", "Pending Leave", "Status"].map(h => (
                               <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                             ))}
                           </tr>
@@ -972,11 +885,20 @@ export default function HodClient({ session }: Props) {
                               <td className="px-4 py-3 font-medium text-[#444]">{s.name}</td>
                               <td className="px-4 py-3 text-gray-400">{s.email}</td>
                               <td className="px-4 py-3">
-                                <span className="px-2.5 py-1 rounded-lg bg-primary-50 text-primary text-xs font-semibold">
-                                  {s.assignedClass ?? "Unassigned"}
+                                <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${s.role === "NON_TEACHING_STAFF" ? "bg-purple-50 text-purple-600" : "bg-primary-50 text-primary"}`}>
+                                  {s.role === "CLASS_TEACHER" ? "Class Teacher" : s.role === "NON_TEACHING_STAFF" ? "Non-Teaching Staff" : s.role}
                                 </span>
                               </td>
-                              <td className="px-4 py-3 text-gray-500">{s.studentCount || 0}</td>
+                              <td className="px-4 py-3">
+                                {s.role === "CLASS_TEACHER" ? (
+                                  <span className="px-2.5 py-1 rounded-lg bg-primary-50 text-primary text-xs font-semibold">
+                                    {s.assignedClass ?? "Unassigned"}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-gray-300">—</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-gray-500">{s.role === "CLASS_TEACHER" ? (s.studentCount || 0) : "—"}</td>
                               <td className="px-4 py-3">
                                 {s.pendingLeaveCount > 0 ? (
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
@@ -994,7 +916,7 @@ export default function HodClient({ session }: Props) {
                             </tr>
                           ))}
                           {paginatedTeachers.length === 0 && (
-                            <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No class teachers found.</td></tr>
+                            <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-400">No active staff found.</td></tr>
                           )}
                         </tbody>
                       </table>

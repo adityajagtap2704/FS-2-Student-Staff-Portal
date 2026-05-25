@@ -346,7 +346,7 @@ export async function GET(req: NextRequest) {
 
     const staffMap: Record<number, string> = {};
     const allStaff = await db.staff.findMany({ select: { id: true, name: true } });
-    allStaff.forEach((s) => { staffMap[s.id] = s.name; });
+    allStaff.forEach((s: any) => { staffMap[s.id] = s.name; });
 
     const html = mode === "monthly"
       ? generateMonthlyHTML({ titleLabel, subLabel, specials, month: monthParam, year: yearParam })

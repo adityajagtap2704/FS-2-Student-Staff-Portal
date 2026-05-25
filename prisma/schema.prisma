@@ -12,6 +12,7 @@ datasource db {
 enum Role {
   STUDENT
   CLASS_TEACHER
+  NON_TEACHING_STAFF
   HOD
 }
 

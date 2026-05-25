@@ -61,18 +61,18 @@ export async function GET() {
     });
 
     // Calculate leave balance for each student using proper countDays function
-    const studentsWithLeaveBalance = students.map(student => {
-      const approvedLeaves = student.leaveRequests.filter(lr => lr.status === "APPROVED");
+    const studentsWithLeaveBalance = students.map((student: any) => {
+      const approvedLeaves = student.leaveRequests.filter((lr: any) => lr.status === "APPROVED");
       
       // Calculate yearly used using proper countDays function
       let yearlyUsed = 0;
-      approvedLeaves.forEach(leave => {
+      approvedLeaves.forEach((leave: any) => {
         yearlyUsed += countDays(leave.fromDate, leave.toDate);
       });
 
       // Calculate monthly used for current month
       let monthlyUsed = 0;
-      approvedLeaves.forEach(leave => {
+      approvedLeaves.forEach((leave: any) => {
         const leaveFromDate = new Date(leave.fromDate);
         const leaveToDate = new Date(leave.toDate);
         

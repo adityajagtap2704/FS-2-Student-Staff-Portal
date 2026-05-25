@@ -47,9 +47,9 @@ export async function POST(req: Request) {
     }
 
     // Validate role
-    if (!["CLASS_TEACHER", "HOD"].includes(role)) {
+    if (!["CLASS_TEACHER", "NON_TEACHING_STAFF"].includes(role)) {
       return NextResponse.json(
-        { error: "Invalid role. Must be CLASS_TEACHER or HOD" },
+        { error: "Invalid role. Must be CLASS_TEACHER or NON_TEACHING_STAFF" },
         { status: 400 }
       );
     }
@@ -58,6 +58,14 @@ export async function POST(req: Request) {
     if (role === "CLASS_TEACHER" && !assignedClass) {
       return NextResponse.json(
         { error: "Class Teachers must have an assigned class" },
+        { status: 400 }
+      );
+    }
+
+    // NON_TEACHING_STAFF should not have assignedClass
+    if (role === "NON_TEACHING_STAFF" && assignedClass) {
+      return NextResponse.json(
+        { error: "Non-Teaching Staff should not have an assigned class" },
         { status: 400 }
       );
     }

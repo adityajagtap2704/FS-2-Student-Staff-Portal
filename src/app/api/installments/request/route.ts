@@ -197,7 +197,7 @@ export async function GET(req: Request) {
 
     // For each request, fetch its installments separately
     const requestsWithInstallments = await Promise.all(
-      requests.map(async (req) => {
+      requests.map(async (req: any) => {
         const installments = await db.installment.findMany({
           where: { feeId: req.feeId },
           orderBy: { installmentNumber: "asc" },

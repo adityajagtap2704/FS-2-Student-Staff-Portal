@@ -38,7 +38,7 @@ CREATE TABLE staff (
   name VARCHAR(191) NOT NULL,
   email VARCHAR(191) UNIQUE NOT NULL,
   password VARCHAR(191) NOT NULL,
-  role ENUM('STUDENT','CLASS_TEACHER','HOD') DEFAULT 'CLASS_TEACHER',
+  role ENUM('STUDENT','CLASS_TEACHER','NON_TEACHING_STAFF','HOD') DEFAULT 'CLASS_TEACHER',
   assignedClass VARCHAR(191),
   isActive BOOLEAN DEFAULT TRUE,
   approvedBy VARCHAR(191),
@@ -258,7 +258,7 @@ CREATE TABLE staff_signup_temp (
   email VARCHAR(191) UNIQUE NOT NULL,
   name VARCHAR(191) NOT NULL,
   password VARCHAR(191) NOT NULL,
-  role ENUM('STUDENT','CLASS_TEACHER','HOD') DEFAULT 'CLASS_TEACHER',
+  role ENUM('STUDENT','CLASS_TEACHER','NON_TEACHING_STAFF','HOD') DEFAULT 'CLASS_TEACHER',
   assignedClass VARCHAR(191),
   expiresAt DATETIME(3) NOT NULL,
   createdAt DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)
@@ -506,18 +506,31 @@ VALUES
 ('ADM-2026-005', 'Aryan Kapoor', 'Rajiv Kapoor', 'rajiv.kapoor@gmail.com', '9876505678', 'Class 11', 'PENDING', NOW(), NULL, NULL);
 
 -- ============================================================================
--- INSERT STAFF (8 records)
+-- INSERT STAFF (13 records)
+-- All passwords stored as plain text
+-- HOD password       : hod123
+-- Class Teacher passwords: [firstname]123  (e.g. lakshmi123)
+-- Non-Teaching Staff : NonTeaching@2026
 -- ============================================================================
-INSERT INTO staff (name, email, password, role, assignedClass, isActive, createdAt, updatedAt)
+INSERT INTO staff (name, email, password, role, assignedClass, isActive, approvedBy, approvedAt, createdAt, updatedAt)
 VALUES
-('Mrs. Lakshmi Devi', 'lakshmi@kalnet.edu', 'lakshmi123', 'CLASS_TEACHER', 'Class 6', 1, NOW(), NOW()),
-('Mr. Suresh Babu', 'suresh@kalnet.edu', 'suresh123', 'CLASS_TEACHER', 'Class 7', 1, NOW(), NOW()),
-('Mrs. Anita Sharma', 'anita@kalnet.edu', 'anita123', 'CLASS_TEACHER', 'Class 8', 1, NOW(), NOW()),
-('Mr. Ravi Teja', 'ravi@kalnet.edu', 'ravi123', 'CLASS_TEACHER', 'Class 9', 1, NOW(), NOW()),
-('Mrs. Preethi Nair', 'preethi@kalnet.edu', 'preethi123', 'CLASS_TEACHER', 'Class 10', 1, NOW(), NOW()),
-('Mr. Karthik Reddy', 'karthik@kalnet.edu', 'karthik123', 'CLASS_TEACHER', 'Class 11', 1, NOW(), NOW()),
-('Mrs. Sunita Rao', 'sunita@kalnet.edu', 'sunita123', 'CLASS_TEACHER', 'Class 12', 1, NOW(), NOW()),
-('Dr. Venkat Prasad', 'hod@kalnet.edu', 'hod123', 'HOD', NULL, 1, NOW(), NOW());
+-- Class Teachers (staffId 1-7)
+('Mrs. Lakshmi Devi',  'lakshmi@kalnet.edu',          'lakshmi123',      'CLASS_TEACHER',      'Class 6',  1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Mr. Suresh Babu',    'suresh@kalnet.edu',            'suresh123',       'CLASS_TEACHER',      'Class 7',  1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Mrs. Anita Sharma',  'anita@kalnet.edu',             'anita123',        'CLASS_TEACHER',      'Class 8',  1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Mr. Ravi Teja',      'ravi@kalnet.edu',              'ravi123',         'CLASS_TEACHER',      'Class 9',  1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Mrs. Preethi Nair',  'preethi@kalnet.edu',           'preethi123',      'CLASS_TEACHER',      'Class 10', 1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Mr. Karthik Reddy',  'karthik@kalnet.edu',           'karthik123',      'CLASS_TEACHER',      'Class 11', 1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Mrs. Sunita Rao',    'sunita@kalnet.edu',            'sunita123',       'CLASS_TEACHER',      'Class 12', 1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+-- HOD (staffId 8)
+('Dr. Venkat Prasad',  'hod@kalnet.edu',               'hod123',          'HOD',                NULL,       1, NULL,             NULL,  NOW(), NOW()),
+-- Non-Teaching Staff (staffId 9-13)
+-- These staff handle Admissions and Document Verification
+('Ms. Priya Sharma',   'priya.fees@kalnet.edu',        'NonTeaching@2026','NON_TEACHING_STAFF', NULL,       1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Mr. Rajesh Kumar',   'rajesh.admissions@kalnet.edu', 'NonTeaching@2026','NON_TEACHING_STAFF', NULL,       1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Mrs. Anjali Verma',  'anjali.finance@kalnet.edu',    'NonTeaching@2026','NON_TEACHING_STAFF', NULL,       1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Ms. Neha Patel',     'neha.admissions@kalnet.edu',   'NonTeaching@2026','NON_TEACHING_STAFF', NULL,       1, 'hod@kalnet.edu', NOW(), NOW(), NOW()),
+('Mr. Vikram Singh',   'vikram.fees@kalnet.edu',       'NonTeaching@2026','NON_TEACHING_STAFF', NULL,       1, 'hod@kalnet.edu', NOW(), NOW(), NOW());
 
 -- ============================================================================
 -- INSERT STUDENTS (70 records - 10 per Class for Classes 6-12)
@@ -671,6 +684,7 @@ SELECT id, 'GENERAL', 'Welcome to KALNET', 'Welcome to KALNET Student Portal. Pl
 -- ============================================================================
 -- INSERT LEAVE REQUESTS (15 records)
 -- ============================================================================
+-- Student leave requests (studentId set, staffId NULL)
 INSERT INTO leave_requests (studentId, leaveType, fromDate, toDate, reason, status, submittedAt)
 VALUES
 (1, 'Medical', '2026-04-01', '2026-04-03', 'Medical checkup', 'APPROVED', NOW()),
@@ -688,6 +702,29 @@ VALUES
 (13, 'Medical', '2026-06-20', '2026-06-22', 'Eye checkup', 'PENDING', NOW()),
 (14, 'Casual', '2026-07-20', '2026-07-22', 'Coaching', 'APPROVED', NOW()),
 (15, 'Medical', '2026-08-05', '2026-08-07', 'Vaccination', 'APPROVED', NOW());
+
+-- ============================================================================
+-- Staff leave requests (staffId set, studentId NULL)
+-- Class Teachers (staffId 1-7) and Non-Teaching Staff (staffId 9-13)
+-- ============================================================================
+INSERT INTO leave_requests (staffId, leaveType, fromDate, toDate, reason, status, submittedAt)
+VALUES
+-- Class Teacher leaves
+(1, 'Medical / Health',  '2026-05-01', '2026-05-02', 'Fever and rest',           'APPROVED', NOW()),
+(2, 'Family Function',   '2026-05-10', '2026-05-11', 'Sister wedding',            'PENDING',  NOW()),
+(3, 'Personal Work',     '2026-05-15', '2026-05-15', 'Bank work',                 'APPROVED', NOW()),
+(4, 'Medical / Health',  '2026-05-20', '2026-05-21', 'Dental appointment',        'REJECTED', NOW()),
+(5, 'Bereavement',       '2026-05-22', '2026-05-24', 'Family bereavement',        'APPROVED', NOW()),
+(6, 'Academic Event',    '2026-05-28', '2026-05-29', 'Training workshop',         'PENDING',  NOW()),
+(7, 'Personal Work',     '2026-06-02', '2026-06-02', 'Personal errand',           'PENDING',  NOW()),
+-- Non-Teaching Staff leaves (staffId 9-13)
+(9,  'Medical / Health', '2026-05-05', '2026-05-06', 'Doctor visit',              'PENDING',  NOW()),
+(9,  'Family Function',  '2026-05-18', '2026-05-19', 'Family function',           'PENDING',  NOW()),
+(10, 'Medical / Health', '2026-05-08', '2026-05-09', 'Health checkup',            'PENDING',  NOW()),
+(10, 'Personal Work',    '2026-05-25', '2026-05-25', 'Personal work',             'APPROVED', NOW()),
+(11, 'Bereavement',      '2026-05-12', '2026-05-14', 'Relative passed away',      'APPROVED', NOW()),
+(12, 'Medical / Health', '2026-05-16', '2026-05-17', 'Eye treatment',             'PENDING',  NOW()),
+(13, 'Family Function',  '2026-05-21', '2026-05-22', 'Engagement ceremony',       'PENDING',  NOW());
 
 -- ============================================================================
 -- INSERT OTP RECORDS (5 records)
@@ -738,18 +775,23 @@ VALUES
 (10, 'Passport', 'rehan_passport.pdf', 'https://storage.example.com/docs/rehan_passport.pdf', 3072000, NOW(), 'PENDING', NULL, NULL);
 
 -- ============================================================================
--- INSERT STAFF LEAVE BALANCE (8 records)
+-- INSERT STAFF LEAVE BALANCE (13 records - all staff including non-teaching)
 -- ============================================================================
 INSERT INTO staff_leave_balance (staffId, year, totalYearlyLeave, usedLeave, remainingLeave, monthlyUsed)
 VALUES
-(1, 2026, 20, 3, 17, 1),
-(2, 2026, 20, 0, 20, 0),
-(3, 2026, 20, 5, 15, 2),
-(4, 2026, 20, 2, 18, 1),
-(5, 2026, 20, 4, 16, 1),
-(6, 2026, 20, 1, 19, 0),
-(7, 2026, 20, 6, 14, 2),
-(8, 2026, 20, 8, 12, 3);
+(1,  2026, 20, 3, 17, 1),
+(2,  2026, 20, 0, 20, 0),
+(3,  2026, 20, 5, 15, 2),
+(4,  2026, 20, 2, 18, 1),
+(5,  2026, 20, 4, 16, 1),
+(6,  2026, 20, 1, 19, 0),
+(7,  2026, 20, 6, 14, 2),
+(8,  2026, 20, 8, 12, 3),
+(9,  2026, 20, 0, 20, 0),
+(10, 2026, 20, 0, 20, 0),
+(11, 2026, 20, 0, 20, 0),
+(12, 2026, 20, 0, 20, 0),
+(13, 2026, 20, 0, 20, 0);
 
 -- ============================================================================
 -- INSERT CLASS ASSIGNMENTS (7 records)
@@ -799,6 +841,27 @@ SELECT f.id, f.studentId, f.paidAmount, 'ONLINE', CONCAT('txn_', f.id), NOW(), C
 FROM fees f
 WHERE f.status = 'PAID'
 LIMIT 35;
+
+-- ============================================================================
+-- INSERT INSTALLMENT REQUESTS (sample data - 3 requests)
+-- Flow: Student submits → Non-Teaching Staff reviews → Approve/Reject
+-- Approved requests also have installment records created
+-- ============================================================================
+-- 3 sample requests: 1 PENDING, 1 APPROVED (with installments), 1 REJECTED
+INSERT INTO installment_requests (feeId, studentId, numberOfInstallments, reason, status, approvedBy, approvedAt, rejectionReason, requestedAt, updatedAt)
+VALUES
+-- PENDING: Student 1 (Priya Sharma) requesting installment for fee id 2
+(2,  1, 1, 'Financial hardship due to medical expenses in the family. Requesting to split the fee into two installments.', 'PENDING',  NULL,                          NULL,    NULL,                                    NOW(), NOW()),
+-- APPROVED: Student 2 (Ishaan Kapur) - approved by non-teaching staff
+(12, 2, 1, 'Job loss in family. Unable to pay full amount at once.',                                                       'APPROVED', 'priya.fees@kalnet.edu',       NOW(),   NULL,                                    NOW(), NOW()),
+-- REJECTED: Student 3 (Riya Gupta) - rejected with reason
+(22, 3, 1, 'Requesting installment for convenience.',                                                                      'REJECTED', 'rajesh.admissions@kalnet.edu', NOW(),  'Installment plans are only for genuine financial hardship cases.', NOW(), NOW());
+
+-- Installments for the APPROVED request (feeId=12, studentId=2)
+INSERT INTO installments (feeId, studentId, installmentNumber, amount, dueDate, paidAmount, status, createdAt, updatedAt)
+VALUES
+(12, 2, 1, 7500.00, NOW(),                                    0.00, 'PENDING', NOW(), NOW()),
+(12, 2, 2, 7500.00, DATE_ADD(NOW(), INTERVAL 30 DAY),         0.00, 'PENDING', NOW(), NOW());
 
 -- ============================================================================
 -- INSERT TIMETABLE SLOTS (Time Periods)

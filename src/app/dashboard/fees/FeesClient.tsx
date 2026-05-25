@@ -101,13 +101,20 @@ export default function FeesClient() {
     reloadFees();
   }, []);
 
-  // Auto-refresh every 15 seconds to catch payment updates
+  // Auto-refresh every 5 seconds to catch installment status updates
   useEffect(() => {
     const interval = setInterval(() => {
       reloadFees();
-    }, 15000); // 15 seconds
+    }, 5000);
 
-    return () => clearInterval(interval);
+    // Also refresh immediately when the tab regains focus
+    const onFocus = () => reloadFees();
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
   }, []);
 
   const loadRazorpay = async () => {
@@ -440,6 +447,7 @@ export default function FeesClient() {
                           <InstallmentStatus
                             installments={installmentData[row.id]?.installments || []}
                             requestStatus={installmentData[row.id]?.request?.status || "PENDING"}
+                            onPaymentSuccess={reloadFees}
                           />
                         </td>
                       </tr>

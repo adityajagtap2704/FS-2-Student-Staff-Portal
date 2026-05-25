@@ -16,7 +16,7 @@ export default function StaffSignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"CLASS_TEACHER">("CLASS_TEACHER");
+  const [role, setRole] = useState<"CLASS_TEACHER" | "NON_TEACHING_STAFF">("CLASS_TEACHER");
   const [assignedClass, setAssignedClass] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -79,8 +79,8 @@ export default function StaffSignUpPage() {
           name,
           email,
           password,
-          role: "CLASS_TEACHER", // Always send CLASS_TEACHER
-          assignedClass,
+          role,
+          assignedClass: role === "CLASS_TEACHER" ? assignedClass : null,
         }),
       });
 
@@ -149,7 +149,7 @@ export default function StaffSignUpPage() {
             <div className="p-8 text-center">
               <div className="text-5xl mb-4">✅</div>
               <p className="text-gray-600 mb-2">Your staff account has been created!</p>
-              <p className="text-gray-500 mb-6">Your account is now active and pending HOD approval.</p>
+              <p className="text-gray-500 mb-6">Your account is now pending HOD approval. You will receive an email once approved.</p>
               <p className="text-sm text-gray-400 mb-6">Redirecting to login...</p>
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
@@ -224,18 +224,29 @@ export default function StaffSignUpPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Role *
+                    Staff Role *
                   </label>
-                  <div className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700">
-                    Class Teacher
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Staff members register as Class Teachers. Additional roles are assigned separately.
-                  </p>
+                  <select
+                    value={role}
+                    onChange={(e) => {
+                      setRole(e.target.value as "CLASS_TEACHER" | "NON_TEACHING_STAFF");
+                      if (e.target.value === "NON_TEACHING_STAFF") setAssignedClass("");
+                    }}
+                    disabled={loading}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
+                  >
+                    <option value="CLASS_TEACHER">Class Teacher</option>
+                    <option value="NON_TEACHING_STAFF">Non-Teaching Staff</option>
+                  </select>
                 </div>
 
                 {role === "CLASS_TEACHER" && (
-                  <div>
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Assigned Class *
                     </label>
@@ -252,7 +263,7 @@ export default function StaffSignUpPage() {
                         </option>
                       ))}
                     </select>
-                  </div>
+                  </motion.div>
                 )}
 
                 <div>

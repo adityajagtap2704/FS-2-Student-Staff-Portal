@@ -18,8 +18,11 @@ export async function GET(
     const studentId = parseInt((await params).id);
 
     // Students can only view their own documents
-    // HOD can view any student's documents
+    // HOD and NON_TEACHING_STAFF can view any student's documents
     if (user.role === "STUDENT" && parseInt(user.id) !== studentId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    if (user.role !== "STUDENT" && user.role !== "HOD" && user.role !== "NON_TEACHING_STAFF") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

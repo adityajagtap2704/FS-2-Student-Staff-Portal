@@ -110,7 +110,7 @@ export async function updateInstallmentPayment(input: {
     const updated = await db.installment.update({
       where: { id: input.installmentId },
       data: {
-        paidAmount: new Prisma.Decimal(newPaidAmount.toFixed(2)),
+        paidAmount: Number(newPaidAmount.toFixed(2)),
         status,
         paymentMethod: input.paymentMethod,
         paidAt: status === "PAID" ? new Date() : null,

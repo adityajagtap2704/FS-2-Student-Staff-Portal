@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     );
 
     // Format response
-    const formatted = filtered.map((fee) => ({
+    const formatted = filtered.map((fee: any) => ({
       id: fee.id,
       studentId: fee.studentId,
       studentName: fee.student?.name || "Unknown",

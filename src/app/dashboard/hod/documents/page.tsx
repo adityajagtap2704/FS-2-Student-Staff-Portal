@@ -9,7 +9,7 @@ export default async function DocumentVerificationPage() {
   if (!session) redirect("/login");
 
   const user = session.user as any;
-  if (user.role !== "HOD") redirect("/dashboard");
+  if (user.role !== "HOD" && user.role !== "NON_TEACHING_STAFF") redirect("/dashboard");
 
   return (
     <PageLayout session={session} title="Document Verification">

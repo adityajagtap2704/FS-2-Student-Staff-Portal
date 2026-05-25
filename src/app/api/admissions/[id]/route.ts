@@ -15,7 +15,7 @@ export async function PATCH(
   try {
     const session = await getServerSession(authOptions);
     const user    = session?.user as any;
-    if (!session || user?.role !== "HOD") {
+    if (!session || (user?.role !== "HOD" && user?.role !== "NON_TEACHING_STAFF")) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

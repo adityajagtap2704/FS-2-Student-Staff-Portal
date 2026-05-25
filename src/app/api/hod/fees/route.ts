@@ -99,7 +99,10 @@ export async function GET(req: Request) {
       fees: deduplicatedFees,
       allFees: fees,
       summary,
-      classes: classes.map(c => c.classEnrolled).filter(Boolean).sort(),
+      classes: classes
+        .map((c: { classEnrolled: string | null }) => c.classEnrolled)
+        .filter(Boolean)
+        .sort(),
       activeClass: classFilter || "ALL",
     });
   } catch (error) {

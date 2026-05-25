@@ -55,7 +55,7 @@ export async function applyPenaltyForOverdueFee(feeId: number): Promise<boolean>
     await db.fee.update({
       where: { id: feeId },
       data: {
-        penaltyAmount: new Prisma.Decimal(penaltyAmount.toFixed(2)),
+        penaltyAmount: Number(penaltyAmount.toFixed(2)),
         penaltyAppliedAt: now,
       },
     });
@@ -65,8 +65,8 @@ export async function applyPenaltyForOverdueFee(feeId: number): Promise<boolean>
       data: {
         feeId,
         studentId: fee.studentId,
-        penaltyAmount: new Prisma.Decimal(penaltyAmount.toFixed(2)),
-        penaltyPercentage: new Prisma.Decimal(penaltyPercentage.toFixed(2)),
+        penaltyAmount: Number(penaltyAmount.toFixed(2)),
+        penaltyPercentage: Number(penaltyPercentage.toFixed(2)),
         daysOverdue,
         reason: `${daysOverdue} days overdue`,
       },
@@ -163,8 +163,8 @@ export async function applyPenaltyForOverdueInstallment(
       data: {
         feeId: installment.feeId,
         studentId: installment.studentId,
-        penaltyAmount: new Prisma.Decimal(penaltyAmount.toFixed(2)),
-        penaltyPercentage: new Prisma.Decimal(penaltyPercentage.toFixed(2)),
+        penaltyAmount: Number(penaltyAmount.toFixed(2)),
+        penaltyPercentage: Number(penaltyPercentage.toFixed(2)),
         daysOverdue,
         reason: `Installment ${installment.installmentNumber} overdue by ${daysOverdue} days`,
       },
@@ -208,7 +208,7 @@ export async function getTotalPenaltyForStudent(studentId: number) {
       _sum: { penaltyAmount: true },
     });
 
-    return result._sum.penaltyAmount || new Prisma.Decimal(0);
+    return Number(result._sum.penaltyAmount || 0);
   } catch (error) {
     console.error("[PENALTY] Error calculating total penalty:", error);
     throw error;
@@ -226,7 +226,7 @@ export async function waivePenalty(input: {
     const fee = await db.fee.update({
       where: { id: input.feeId },
       data: {
-        penaltyAmount: new Prisma.Decimal(0),
+        penaltyAmount: 0,
         penaltyAppliedAt: null,
       },
     });
@@ -236,8 +236,8 @@ export async function waivePenalty(input: {
       data: {
         feeId: input.feeId,
         studentId: fee.studentId,
-        penaltyAmount: new Prisma.Decimal(0),
-        penaltyPercentage: new Prisma.Decimal(0),
+        penaltyAmount: 0,
+        penaltyPercentage: 0,
         daysOverdue: 0,
         reason: `Penalty waived: ${input.reason}`,
       },

@@ -138,16 +138,24 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
     return () => el.removeEventListener("scroll", handler);
   }, []);
 
-  // Fix #13 — fetch real unread count for students only
+  // Fetch notifications for students — poll every 30 seconds so new ones appear without a page reload
   useEffect(() => {
     if (!isStudent) return;
-    fetch("/api/notifications")
-      .then(r => r.json())
-      .then(d => {
-        setUnreadCount(d.unreadCount ?? 0);
-        setNotifications((d.notifications ?? []).slice(0, 5));
-      })
-      .catch(() => {});
+
+    const fetchNotifications = () => {
+      fetch("/api/notifications")
+        .then(r => r.json())
+        .then(d => {
+          setUnreadCount(d.unreadCount ?? 0);
+          setNotifications((d.notifications ?? []).slice(0, 10));
+        })
+        .catch(() => {});
+    };
+
+    fetchNotifications(); // immediate first fetch
+
+    const interval = setInterval(fetchNotifications, 10_000); // poll every 10 s
+    return () => clearInterval(interval);
   }, [isStudent]);
 
   const handleSignOut = async () => {

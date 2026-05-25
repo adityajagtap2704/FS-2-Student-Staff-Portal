@@ -51,11 +51,11 @@ export async function getLeaveBalance(id: number, isStaff: boolean = false): Pro
     },
   });
 
-  const approvedRequests = requests.filter(r => r.status === "APPROVED");
-  const pendingRequests  = requests.filter(r => r.status === "PENDING");
+  const approvedRequests = requests.filter((r: any) => r.status === "APPROVED");
+  const pendingRequests  = requests.filter((r: any) => r.status === "PENDING");
 
-  const yearlyUsed = approvedRequests.reduce((acc, r) => acc + countDays(r.fromDate, r.toDate), 0);
-  const yearlyPending = pendingRequests.reduce((acc, r) => acc + countDays(r.fromDate, r.toDate), 0);
+  const yearlyUsed = approvedRequests.reduce((acc: number, r: any) => acc + countDays(r.fromDate, r.toDate), 0);
+  const yearlyPending = pendingRequests.reduce((acc: number, r: any) => acc + countDays(r.fromDate, r.toDate), 0);
 
   const getMonthBoundaries = (y: number, m: number) => {
     const start = new Date(Date.UTC(y, m, 1));
@@ -66,12 +66,12 @@ export async function getLeaveBalance(id: number, isStaff: boolean = false): Pro
   const { start: monthStart, end: monthEnd } = getMonthBoundaries(year, month);
 
   const getMonthlySum = (reqList: typeof requests) => {
-    const filtered = reqList.filter((r) => {
+    const filtered = reqList.filter((r: any) => {
       const fromDate = new Date(r.fromDate);
       const toDate = new Date(r.toDate);
       return fromDate <= monthEnd && toDate >= monthStart;
     });
-    return filtered.reduce((acc, r) => {
+    return filtered.reduce((acc: number, r: any) => {
       const fromDate = new Date(r.fromDate);
       const toDate = new Date(r.toDate);
       const effectiveFrom = fromDate > monthStart ? fromDate : monthStart;
@@ -91,12 +91,12 @@ export async function getLeaveBalance(id: number, isStaff: boolean = false): Pro
     const { start: mStart, end: mEnd } = getMonthBoundaries(year, idx);
     
     const getSumForMonth = (reqList: typeof requests) => {
-      const filtered = reqList.filter((r) => {
+      const filtered = reqList.filter((r: any) => {
         const fromDate = new Date(r.fromDate);
         const toDate = new Date(r.toDate);
         return fromDate <= mEnd && toDate >= mStart;
       });
-      return filtered.reduce((acc, r) => {
+      return filtered.reduce((acc: number, r: any) => {
         const fromDate = new Date(r.fromDate);
         const toDate = new Date(r.toDate);
         const effectiveFrom = fromDate > mStart ? fromDate : mStart;
@@ -117,7 +117,7 @@ export async function getLeaveBalance(id: number, isStaff: boolean = false): Pro
   });
 
   const yearlyRemainingFromMonthly = monthlyBreakdown.reduce(
-    (acc, m) => acc + m.remaining,
+    (acc: number, m: any) => acc + m.remaining,
     0
   );
 

@@ -20,6 +20,10 @@ export default async function DashboardPage() {
     redirect("/dashboard/staff");
   }
 
+  if (user.role === "NON_TEACHING_STAFF") {
+    redirect("/dashboard/non-teaching-staff");
+  }
+
   // Only students can access this dashboard
   if (user.role !== "STUDENT") {
     redirect("/login");
@@ -53,8 +57,8 @@ export default async function DashboardPage() {
     orderBy: { dueDate: "asc" },
   });
 
-  const totalDue = fees.reduce((acc, f) => acc + Number(f.amount), 0);
-  const totalPaid = fees.reduce((acc, f) => acc + Number(f.paidAmount), 0);
+  const totalDue = fees.reduce((acc: number, f: any) => acc + Number(f.amount), 0);
+  const totalPaid = fees.reduce((acc: number, f: any) => acc + Number(f.paidAmount), 0);
   const outstanding = totalDue - totalPaid;
 
   // 2. Fetch Recent Activities
@@ -79,7 +83,7 @@ export default async function DashboardPage() {
 
   // Combine and format activity
   const activityData = [
-    ...recentAnnouncements.map(a => ({
+    ...recentAnnouncements.map((a: any) => ({
       icon: "megaphone",
       iconColor: "text-blue-500",
       iconBg: "bg-blue-50",
@@ -89,7 +93,7 @@ export default async function DashboardPage() {
       badge: "info" as const,
       badgeLabel: "New"
     })),
-    ...recentLeave.map(l => ({
+    ...recentLeave.map((l: any) => ({
       icon: "clock",
       iconColor: l.status === "APPROVED" ? "text-emerald-500" : l.status === "REJECTED" ? "text-red-500" : "text-amber-500",
       iconBg: l.status === "APPROVED" ? "bg-emerald-50" : l.status === "REJECTED" ? "bg-red-50" : "bg-amber-50",
@@ -99,7 +103,7 @@ export default async function DashboardPage() {
       badge: (l.status === "APPROVED" ? "success" : l.status === "REJECTED" ? "danger" : "warning") as any,
       badgeLabel: l.status.charAt(0) + l.status.slice(1).toLowerCase()
     })),
-    ...fees.filter(f => f.status === "PAID").slice(-2).map(f => ({
+    ...fees.filter((f: any) => f.status === "PAID").slice(-2).map((f: any) => ({
       icon: "check",
       iconColor: "text-emerald-500",
       iconBg: "bg-emerald-50",

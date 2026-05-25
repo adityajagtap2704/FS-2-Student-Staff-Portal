@@ -44,27 +44,45 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
   const [selectedType, setSelectedType] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const loadDocuments = async () => {
+  const loadDocuments = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetch(`/api/students/${studentId}/documents`);
       if (!res.ok) throw new Error("Failed to load documents");
       const data = await res.json();
-      // Sort by uploadedAt descending (newest first)
-      const sorted = data.sort((a: Document, b: Document) => 
+      const sorted = data.sort((a: Document, b: Document) =>
         new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
       );
-      setDocuments(sorted);
+
+      // Detect status changes and show toast notifications
+      setDocuments((prev) => {
+        const prevMap: Record<number, string> = {};
+        prev.forEach((d) => { prevMap[d.id] = d.status; });
+        sorted.forEach((d: Document) => {
+          const oldStatus = prevMap[d.id];
+          if (oldStatus && oldStatus !== d.status) {
+            if (d.status === "VERIFIED") {
+              toast.success(`${d.documentType} Verified`, "Your document has been verified successfully.");
+            } else if (d.status === "REJECTED") {
+              toast.error(`${d.documentType} Rejected`, d.rejectionReason || "Your document was rejected.");
+            }
+          }
+        });
+        return sorted;
+      });
     } catch (error) {
-      toast.error("Failed to load documents", "Please refresh the page");
+      if (!silent) toast.error("Failed to load documents", "Please refresh the page");
       console.error(error);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadDocuments();
+    // Poll every 15 seconds for status updates
+    const interval = setInterval(() => loadDocuments(true), 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -14,9 +14,9 @@ export async function PATCH(
     }
 
     const user = session.user as any;
-    
-    // Only HOD can verify documents
-    if (user.role !== "HOD") {
+
+    // Only HOD and NON_TEACHING_STAFF can verify documents
+    if (user.role !== "HOD" && user.role !== "NON_TEACHING_STAFF") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -43,17 +43,38 @@ export async function PATCH(
       );
     }
 
-    // Update document status
+    // Update document status — cast verifiedBy to Int to match schema
     const updated = await db.studentDocument.update({
       where: { id: documentId },
       data: {
         status,
-        verifiedBy: user.id,
+        verifiedBy: parseInt(user.id),
         verifiedAt: new Date(),
         rejectionReason: status === "REJECTED" ? rejectionReason : null,
       },
       include: { student: true },
     });
+
+    // Send notification to the student — use GENERAL type for broad compatibility
+    const isVerified = status === "VERIFIED";
+    try {
+      await db.notification.create({
+        data: {
+          studentId: document.studentId,
+          type: "GENERAL",
+          title: isVerified
+            ? `Document Verified: ${document.documentType}`
+            : `Document Rejected: ${document.documentType}`,
+          message: isVerified
+            ? `Your ${document.documentType} has been verified successfully.`
+            : `Your ${document.documentType} was rejected. Reason: ${rejectionReason || "No reason provided."}`,
+          isRead: false,
+        },
+      });
+    } catch (notifError) {
+      // Notification failure must not block the verification response
+      console.error("Notification creation failed (non-fatal):", notifError);
+    }
 
     return NextResponse.json({
       success: true,
