@@ -25,7 +25,7 @@ export async function GET() {
     const fees = await db.fee.findMany({
       where: { student: { classEnrolled: assignedClass } },
       include: { student: { select: { id: true, name: true, rollNumber: true, classEnrolled: true } } },
-      orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+      orderBy: [{ paidAt: "desc" }, { dueDate: "asc" }],
     });
 
     const byStudent: Record<string, any> = {};

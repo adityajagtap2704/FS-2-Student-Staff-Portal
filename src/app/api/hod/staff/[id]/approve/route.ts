@@ -81,7 +81,7 @@ export async function POST(
       await sendStaffApprovalEmail(
         updatedStaff.name,
         updatedStaff.email,
-        updatedStaff.role,
+        updatedStaff.role ?? "CLASS_TEACHER",
         updatedStaff.assignedClass,
         loginLink
       );

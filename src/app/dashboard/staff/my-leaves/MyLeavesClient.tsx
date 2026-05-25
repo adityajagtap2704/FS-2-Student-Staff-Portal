@@ -11,6 +11,7 @@ import Input, { Textarea } from "@/components/ui/Input";
 import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { easeOut } from "@/components/motion/MotionConfig";
+import { sortByDesc } from "@/lib/sortOrder";
 
 interface Props { session: Session }
 
@@ -49,7 +50,10 @@ export default function MyLeavesClient({ session }: Props) {
 
   useEffect(() => {
     fetch("/api/staff/leave")
-      .then(r => r.json()).then(d => { setMyLeaves(Array.isArray(d) ? d : []); setLoadingML(false); })
+      .then(r => r.json()).then(d => {
+        setMyLeaves(Array.isArray(d) ? sortByDesc(d, (l) => l.submittedAt) : []);
+        setLoadingML(false);
+      })
       .catch(() => setLoadingML(false));
 
     fetch("/api/staff/leave/balance")

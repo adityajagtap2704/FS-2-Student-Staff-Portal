@@ -1,9 +1,9 @@
 import db from "@/lib/db";
-import { NotificationType } from "@prisma/client";
+import { notifications_type } from "@prisma/client";
 
 interface CreateNotificationParams {
   studentId: number;
-  type: NotificationType;
+  type: notifications_type;
   title: string;
   message: string;
 }

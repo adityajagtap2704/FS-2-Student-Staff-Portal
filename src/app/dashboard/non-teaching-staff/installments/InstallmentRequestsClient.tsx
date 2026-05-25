@@ -8,6 +8,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
+import { sortByDesc } from "@/lib/sortOrder";
 
 type InstallmentRequest = {
   id: number;
@@ -52,7 +53,8 @@ export default function InstallmentRequestsClient() {
       setLoading(true);
       const res = await fetch("/api/non-teaching-staff/installments");
       const data = await res.json();
-      setRequests(Array.isArray(data.requests) ? data.requests : []);
+      const list = Array.isArray(data.requests) ? data.requests : [];
+      setRequests(sortByDesc(list, (r) => r.requestedAt));
     } catch (err) {
       console.error("Error fetching installment requests:", err);
     } finally {

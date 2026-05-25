@@ -6,6 +6,7 @@ import { Session } from "next-auth";
 import { Users, Clock, CheckCircle2 } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import { staggerContainer, easeOut } from "@/components/motion/MotionConfig";
+import { sortByDesc } from "@/lib/sortOrder";
 
 interface Props { session: Session }
 
@@ -25,11 +26,17 @@ export default function StaffClient({ session }: Props) {
       .catch(() => setLoadingS(false));
 
     fetch("/api/staff/leave")
-      .then(r => r.json()).then(d => { setLeaves(Array.isArray(d) ? d : []); setLoadingL(false); })
+      .then(r => r.json()).then(d => {
+        setLeaves(Array.isArray(d) ? sortByDesc(d, (l) => l.submittedAt) : []);
+        setLoadingL(false);
+      })
       .catch(() => setLoadingL(false));
 
     fetch("/api/staff/leave/request")
-      .then(r => r.json()).then(d => { setMyLeaves(Array.isArray(d) ? d : []); setLoadingML(false); })
+      .then(r => r.json()).then(d => {
+        setMyLeaves(Array.isArray(d) ? sortByDesc(d, (l) => l.submittedAt) : []);
+        setLoadingML(false);
+      })
       .catch(() => setLoadingML(false));
   }, []);
 

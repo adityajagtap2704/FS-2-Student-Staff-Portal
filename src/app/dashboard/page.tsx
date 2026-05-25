@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import PageLayout from "@/components/layout/PageLayout";
 import DashboardClient from "./DashboardClient";
 import db from "@/lib/db";
+import { compareDesc, prismaOrder } from "@/lib/sortOrder";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -54,7 +55,7 @@ export default async function DashboardPage() {
   // 1. Fetch Fees for Stats
   const fees = await db.fee.findMany({
     where: { studentId },
-    orderBy: { dueDate: "asc" },
+    orderBy: prismaOrder.fee,
   });
 
   const totalDue = fees.reduce((acc, f) => acc + Number(f.amount), 0);
@@ -68,52 +69,82 @@ export default async function DashboardPage() {
       target: { in: ["STUDENT", "BOTH"] }
     },
     take: 3,
-    orderBy: { createdAt: "desc" },
+    orderBy: prismaOrder.announcement,
   });
 
   // Leave Requests
   const recentLeave = await db.leaveRequest.findMany({
     where: { studentId },
-    take: 3,
-    orderBy: { submittedAt: "desc" },
+    take: 10,
+    orderBy: prismaOrder.submittedAt,
   });
 
-  // Recent Fee Payments (mocked by filtering paid fees for now, or just showing latest fee records)
-  const recentFees = fees.slice(-2);
+  const paidFees = fees.filter((f) => f.status === "PAID");
 
-  // Combine and format activity
-  const activityData = [
-    ...recentAnnouncements.map(a => ({
+  // Combine activity — newest first across announcements, leave, fees
+  type ActivityRow = {
+    sortAt: Date;
+    icon: string;
+    iconColor: string;
+    iconBg: string;
+    title: string;
+    sub: string;
+    time: string;
+    badge: "info" | "success" | "danger" | "warning";
+    badgeLabel: string;
+  };
+
+  const activityRows: ActivityRow[] = [
+    ...recentAnnouncements.map((a) => ({
+      sortAt: new Date(a.createdAt ?? a.date),
       icon: "megaphone",
       iconColor: "text-blue-500",
       iconBg: "bg-blue-50",
       title: "New announcement posted",
       sub: a.title,
-      time: formatDate(a.createdAt),
+      time: formatDate(a.createdAt ?? a.date),
       badge: "info" as const,
-      badgeLabel: "New"
+      badgeLabel: "New",
     })),
-    ...recentLeave.map(l => ({
+    ...recentLeave.map((l) => ({
+      sortAt: new Date(l.submittedAt ?? new Date()),
       icon: "clock",
-      iconColor: l.status === "APPROVED" ? "text-emerald-500" : l.status === "REJECTED" ? "text-red-500" : "text-amber-500",
-      iconBg: l.status === "APPROVED" ? "bg-emerald-50" : l.status === "REJECTED" ? "bg-red-50" : "bg-amber-50",
-      title: "Leave request " + l.status.toLowerCase(),
+      iconColor:
+        (l.status ?? "PENDING") === "APPROVED"
+          ? "text-emerald-500"
+          : (l.status ?? "PENDING") === "REJECTED"
+            ? "text-red-500"
+            : "text-amber-500",
+      iconBg:
+        (l.status ?? "PENDING") === "APPROVED"
+          ? "bg-emerald-50"
+          : (l.status ?? "PENDING") === "REJECTED"
+            ? "bg-red-50"
+            : "bg-amber-50",
+      title: "Leave request " + (l.status ?? "pending").toLowerCase(),
       sub: l.reason,
-      time: formatDate(l.submittedAt),
-      badge: (l.status === "APPROVED" ? "success" : l.status === "REJECTED" ? "danger" : "warning") as any,
-      badgeLabel: l.status.charAt(0) + l.status.slice(1).toLowerCase()
+      time: formatDate(l.submittedAt ?? new Date()),
+      badge: ((l.status ?? "PENDING") === "APPROVED"
+        ? "success"
+        : (l.status ?? "PENDING") === "REJECTED"
+          ? "danger"
+          : "warning") as ActivityRow["badge"],
+      badgeLabel: (l.status ?? "PENDING").charAt(0) + (l.status ?? "PENDING").slice(1).toLowerCase(),
     })),
-    ...fees.filter(f => f.status === "PAID").slice(-2).map(f => ({
+    ...paidFees.slice(0, 5).map((f) => ({
+      sortAt: new Date(f.paidAt ?? f.dueDate),
       icon: "check",
       iconColor: "text-emerald-500",
       iconBg: "bg-emerald-50",
       title: "Fee payment received",
       sub: `${f.term} – ₹${Number(f.paidAmount).toLocaleString()} cleared`,
-      time: "Recent", // Fees table doesn't have a paidAt yet, using term/status
+      time: formatDate(f.paidAt ?? f.dueDate),
       badge: "success" as const,
-      badgeLabel: "Paid"
-    }))
-  ].sort((a, b) => 0); // Simplified sort
+      badgeLabel: "Paid",
+    })),
+  ].sort((a, b) => compareDesc(a.sortAt, b.sortAt));
+
+  const activityData = activityRows.slice(0, 4).map(({ sortAt: _s, ...rest }) => rest);
 
   const stats = {
     totalFees: `₹${totalDue.toLocaleString()}`,
@@ -127,6 +158,7 @@ export default async function DashboardPage() {
   const quickLinks = [
     { href: "/dashboard/fees",          label: "Pay Fees",      icon: "credit",   color: "text-primary",   bg: "bg-primary-50" },
     { href: "/dashboard/leave",         label: "Leave",         icon: "calendar", color: "text-amber-600", bg: "bg-amber-50"   },
+    { href: "/dashboard/bonafide",      label: "Bonafide",      icon: "file",     color: "text-purple-600",bg: "bg-purple-50"  },
     { href: "/dashboard/announcements", label: "Notices",       icon: "megaphone",color: "text-blue-600",  bg: "bg-blue-50"    },
   ];
 

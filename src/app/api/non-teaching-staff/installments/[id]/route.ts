@@ -61,7 +61,7 @@ export async function PATCH(
 
     if (installmentRequest.status !== "PENDING") {
       return NextResponse.json(
-        { error: `Request is already ${installmentRequest.status.toLowerCase()}` },
+        { error: `Request is already ${(installmentRequest.status ?? "unknown").toLowerCase()}` },
         { status: 422 }
       );
     }

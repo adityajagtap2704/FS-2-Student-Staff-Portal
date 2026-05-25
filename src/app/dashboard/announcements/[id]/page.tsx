@@ -6,6 +6,8 @@ import Badge from "@/components/ui/Badge";
 import Link from "next/link";
 import { ArrowLeft, Calendar, User, ChevronRight } from "lucide-react";
 import db from "@/lib/db";
+import { canViewAnnouncement } from "@/lib/announcements";
+import { prismaOrder } from "@/lib/sortOrder";
 
 type Category = "Events" | "Exams" | "Holidays" | "General";
 
@@ -27,12 +29,29 @@ export default async function AnnouncementDetailPage({
   const annId = parseInt(params.id);
   if (isNaN(annId)) notFound();
 
+  const user = session.user as { role?: string };
+  const role = user?.role;
+
   const announcement = await db.announcement.findUnique({ where: { id: annId } });
   if (!announcement) notFound();
 
+  if (!canViewAnnouncement(role, announcement.target)) {
+    notFound();
+  }
+
   const related = await db.announcement.findMany({
-    where: { category: announcement.category, id: { not: announcement.id } },
-    orderBy: { date: "desc" },
+    where: {
+      category: announcement.category,
+      id: { not: announcement.id },
+      ...(role === "STUDENT"
+        ? { target: { in: ["STUDENT", "BOTH"] } }
+        : role === "CLASS_TEACHER"
+          ? { target: { in: ["STAFF", "BOTH"] } }
+          : role === "NON_TEACHING_STAFF"
+            ? { target: { in: ["BOTH"] } }
+            : {}),
+    },
+    orderBy: prismaOrder.announcement,
     take: 3,
   });
 

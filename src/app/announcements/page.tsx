@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Bell, Calendar, ChevronRight, Filter, User } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { sortByDesc } from "@/lib/sortOrder";
 
 const CATEGORIES = ["All", "Events", "Exams", "Holidays", "General"];
 
@@ -38,7 +39,10 @@ export default function AnnouncementsPage() {
     const url = activeCategory === "All" ? "/api/announcements" : `/api/announcements?category=${activeCategory}`;
     fetch(url)
       .then(res => res.json())
-      .then(data => { setAnnouncements(data); setLoading(false); })
+      .then(data => {
+        setAnnouncements(Array.isArray(data) ? sortByDesc(data, (a) => a.date ?? a.createdAt) : []);
+        setLoading(false);
+      })
       .catch(err => { console.error(err); setLoading(false); });
   }, [activeCategory]);
 

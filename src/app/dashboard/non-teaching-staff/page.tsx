@@ -5,6 +5,7 @@ import PageLayout from "@/components/layout/PageLayout";
 import NonTeachingStaffClient from "./NonTeachingStaffClient";
 import db from "@/lib/db";
 import { getLeaveBalance } from "@/lib/leaveBalance";
+import { prismaOrder } from "@/lib/sortOrder";
 
 export default async function NonTeachingStaffPage() {
   const session = await getServerSession(authOptions);
@@ -19,11 +20,11 @@ export default async function NonTeachingStaffPage() {
   const staff = await db.staff.findUnique({ where: { id: staffId } });
   if (!staff) redirect("/login");
 
-  // Fetch recent announcements
+  // Notices meant for all staff (not teaching-staff-only)
   const recentAnnouncements = await db.announcement.findMany({
-    where: { target: { in: ["STAFF", "BOTH"] } },
+    where: { target: { in: ["BOTH"] } },
     take: 5,
-    orderBy: { createdAt: "desc" },
+    orderBy: prismaOrder.announcement,
   });
 
   // Fetch leave requests (latest 5 for dashboard preview)
@@ -46,6 +47,11 @@ export default async function NonTeachingStaffPage() {
     where: { status: "PENDING" },
   });
 
+  // Pending bonafide requests count
+  const pendingBonafides = await db.bonafideRequest.count({
+    where: { status: "PENDING" },
+  });
+
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -53,7 +59,6 @@ export default async function NonTeachingStaffPage() {
   return (
     <PageLayout session={session} title="Dashboard">
       <NonTeachingStaffClient
-        session={session}
         staff={staff}
         greeting={greeting}
         announcements={recentAnnouncements}
@@ -61,6 +66,7 @@ export default async function NonTeachingStaffPage() {
         leaveBalance={leaveBalance}
         pendingDocuments={pendingDocuments}
         pendingAdmissions={pendingAdmissions}
+        pendingBonafides={pendingBonafides}
       />
     </PageLayout>
   );

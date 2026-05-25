@@ -32,7 +32,7 @@ export async function PATCH(
     // Validate leave is PENDING before approval/rejection
     if (leave.status !== "PENDING") {
       return NextResponse.json({ 
-        error: `Cannot ${status.toLowerCase()} a leave that is already ${leave.status.toLowerCase()}` 
+        error: `Cannot ${status.toLowerCase()} a leave that is already ${(leave.status ?? "unknown").toLowerCase()}` 
       }, { status: 400 });
     }
 

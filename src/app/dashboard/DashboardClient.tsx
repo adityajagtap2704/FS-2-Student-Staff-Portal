@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Session } from "next-auth";
 import Link from "next/link";
-import { CreditCard, CalendarOff, Megaphone, ArrowRight, TrendingUp, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { CreditCard, CalendarOff, Megaphone, ArrowRight, TrendingUp, CheckCircle2, Clock, AlertCircle, FileText } from "lucide-react";
 import StatCard from "@/components/ui/StatCard";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -17,6 +17,7 @@ const iconMap = {
   alert:    AlertCircle,
   credit:   CreditCard,
   calendar: CalendarOff,
+  file:     FileText,
 };
 
 interface Props {
@@ -87,7 +88,7 @@ export default function DashboardClient({ session, greeting, activity, quickLink
 
       {/* Quick actions */}
       <motion.div
-        className="grid grid-cols-3 gap-3"
+        className="grid grid-cols-4 gap-3"
         variants={staggerContainer}
         initial="initial"
         animate="animate"

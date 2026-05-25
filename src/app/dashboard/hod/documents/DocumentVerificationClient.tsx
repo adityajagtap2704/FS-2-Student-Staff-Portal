@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
+import { sortByDesc } from "@/lib/sortOrder";
 import { staggerContainer, staggerItem, easeOut } from "@/components/motion/MotionConfig";
 
 type Document = {
@@ -71,9 +72,7 @@ export default function DocumentVerificationClient() {
       }
 
       // Sort by uploadedAt descending (newest first)
-      const sorted = allDocs.sort((a, b) => 
-        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
-      );
+      const sorted = sortByDesc(allDocs, (d) => d.uploadedAt);
       
       setDocuments(sorted);
     } catch (error) {
