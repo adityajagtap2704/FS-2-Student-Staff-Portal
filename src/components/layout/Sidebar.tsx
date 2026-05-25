@@ -20,6 +20,7 @@ const studentLinks = [
   { href: "/dashboard/documents",     label: "Documents",     icon: FileText,        exact: false },
   { href: "/dashboard/timetable",     label: "Timetable",     icon: TableProperties, exact: false },
   { href: "/dashboard/leave",         label: "Leave",         icon: CalendarOff,     exact: false },
+  { href: "/dashboard/bonafide",      label: "Bonafide",      icon: FileText,        exact: false },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone,       exact: false },
   { href: "/dashboard/profile",       label: "My Profile",    icon: UserCircle,      exact: false },
 ];
@@ -47,13 +48,14 @@ const hodLinks = [
 ];
 
 const nonTeachingStaffLinks = [
-  { href: "/dashboard/non-teaching-staff",             label: "Dashboard",             icon: LayoutDashboard, exact: true  },
-  { href: "/dashboard/non-teaching-staff/admissions",  label: "Admissions",            icon: BookOpen,        exact: false },
-  { href: "/dashboard/non-teaching-staff/installments",label: "Installment Requests",  icon: CreditCard,      exact: false },
-  { href: "/dashboard/non-teaching-staff/documents",   label: "Document Verification", icon: FileText,        exact: false },
-  { href: "/dashboard/leave",                          label: "Apply for Leave",        icon: CalendarOff,     exact: false },
-  { href: "/dashboard/announcements",                  label: "Announcements",          icon: Megaphone,       exact: false },
-  { href: "/dashboard/profile",                        label: "My Profile",             icon: UserCircle,      exact: false },
+  { href: "/dashboard/non-teaching-staff",                    label: "Dashboard",             icon: LayoutDashboard, exact: true  },
+  { href: "/dashboard/non-teaching-staff/admissions",         label: "Admissions",            icon: BookOpen,        exact: false },
+  { href: "/dashboard/non-teaching-staff/installments",       label: "Installment Requests",  icon: CreditCard,      exact: false },
+  { href: "/dashboard/non-teaching-staff/documents",          label: "Document Verification", icon: FileText,        exact: false },
+  { href: "/dashboard/non-teaching-staff/bonafide",           label: "Bonafide Approval",     icon: FileText,        exact: false },
+  { href: "/dashboard/leave",                                 label: "Apply for Leave",        icon: CalendarOff,     exact: false },
+  { href: "/dashboard/announcements",                         label: "Announcements",          icon: Megaphone,       exact: false },
+  { href: "/dashboard/profile",                               label: "My Profile",             icon: UserCircle,      exact: false },
 ];
 
 interface SidebarProps {

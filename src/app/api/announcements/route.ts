@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import {
+  announcementReadFilter,
+  canManageAnnouncements,
+  isValidTargetForRole,
+} from "@/lib/announcements";
+import { prismaOrder } from "@/lib/sortOrder";
 
 export async function GET(req: Request) {
   try {
@@ -9,23 +15,21 @@ export async function GET(req: Request) {
     const category = searchParams.get("category");
 
     const session = await getServerSession(authOptions);
-    const user = session?.user as any;
+    const user = session?.user as { role?: string } | undefined;
     const role = user?.role;
 
-    const baseWhere: any = {};
+    const baseWhere: Record<string, unknown> = {};
     if (category && category !== "All") {
-      baseWhere.category = category as any;
+      baseWhere.category = category;
     }
-    
-    if (role === "STUDENT") {
-      baseWhere.target = { in: ["STUDENT", "BOTH"] };
-    } else if (role === "CLASS_TEACHER") {
-      baseWhere.target = { in: ["STAFF", "BOTH"] };
+
+    if (!canManageAnnouncements(role)) {
+      Object.assign(baseWhere, announcementReadFilter(role));
     }
 
     const announcements = await db.announcement.findMany({
       where: baseWhere,
-      orderBy: { date: "desc" },
+      orderBy: prismaOrder.announcement,
     });
 
     return NextResponse.json(announcements);
@@ -38,8 +42,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
-    const user    = session?.user as any;
-    if (!session || user?.role !== "HOD") {
+    const user = session?.user as { role?: string; name?: string } | undefined;
+    if (!session || !canManageAnnouncements(user?.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -50,18 +54,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const validTargets = ["STAFF", "STUDENT", "BOTH"];
-    const resolvedTarget = validTargets.includes(target) ? target : "BOTH";
+    if (!isValidTargetForRole(user?.role, target)) {
+      return NextResponse.json(
+        { error: "Invalid audience. Choose Students or Teaching Staff." },
+        { status: 400 }
+      );
+    }
 
     const announcement = await db.announcement.create({
       data: {
-        title:       title.trim(),
+        title: title.trim(),
         category,
-        target:      resolvedTarget as any,
+        target,
         description: description.trim(),
-        author:      author.trim(),
-        date:        new Date(date),
-        imageUrl:    imageUrl?.trim() || null,
+        author: author.trim(),
+        date: new Date(date),
+        imageUrl: imageUrl?.trim() || null,
       },
     });
 

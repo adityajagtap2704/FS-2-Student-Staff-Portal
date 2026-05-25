@@ -17,7 +17,7 @@ export async function GET(req: Request) {
     const fees = await db.fee.findMany({
       where: classFilter ? { student: { classEnrolled: classFilter } } : undefined,
       include: { student: { select: { id: true, name: true, classEnrolled: true, rollNumber: true } } },
-      orderBy: [{ dueDate: "asc" }, { id: "asc" }],
+      orderBy: [{ paidAt: "desc" }, { dueDate: "asc" }],
     });
 
     // Group fees by student and aggregate their status
@@ -61,7 +61,7 @@ export async function GET(req: Request) {
       if (fee.status !== "PAID") studentData.allPaid = false;
     }
 
-    // Determine aggregated status for each student
+    // Sort students: those with most recent payment activity first
     const deduplicatedFees = Array.from(studentFeesMap.values()).map(student => {
       let aggregatedStatus = "PAID";
       if (student.hasOverdue) {
@@ -69,13 +69,19 @@ export async function GET(req: Request) {
       } else if (student.hasPending) {
         aggregatedStatus = "PENDING";
       }
-      
       return {
         ...student,
         status: aggregatedStatus,
         amount: student.totalAmount,
         paidAmount: student.totalPaidAmount,
       };
+    }).sort((a: any, b: any) => {
+      // Students with overdue fees first, then pending, then paid
+      const order: Record<string, number> = { OVERDUE: 0, PENDING: 1, PAID: 2 };
+      const diff = (order[a.status] ?? 1) - (order[b.status] ?? 1);
+      if (diff !== 0) return diff;
+      // Within same status, most recently updated first
+      return new Date(b.dueDate ?? 0).getTime() - new Date(a.dueDate ?? 0).getTime();
     });
 
     const summary = {
@@ -85,8 +91,9 @@ export async function GET(req: Request) {
     } as Record<string, { count: number; total: number }>;
 
     for (const fee of fees) {
-      summary[fee.status].count++;
-      summary[fee.status].total += Number(fee.amount);
+      const key = fee.status ?? "PENDING";
+      summary[key].count++;
+      summary[key].total += Number(fee.amount);
     }
 
     const classes = await db.student.findMany({

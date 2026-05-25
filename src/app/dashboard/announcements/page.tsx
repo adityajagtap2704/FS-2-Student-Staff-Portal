@@ -4,29 +4,34 @@ import { redirect } from "next/navigation";
 import PageLayout from "@/components/layout/PageLayout";
 import AnnouncementsClient from "./AnnouncementsClient";
 import db from "@/lib/db";
+import {
+  announcementReadFilter,
+  canManageAnnouncements,
+} from "@/lib/announcements";
+import { prismaOrder } from "@/lib/sortOrder";
 
 export default async function AnnouncementsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
 
-  const user = session.user as any;
+  const user = session.user as { role?: string; name?: string };
   const role = user?.role;
-
-  const whereClause: any = {};
-  if (role === "STUDENT") {
-    whereClause.target = { in: ["STUDENT", "BOTH"] };
-  } else if (role === "CLASS_TEACHER") {
-    whereClause.target = { in: ["STAFF", "BOTH"] };
-  }
+  const canManage = canManageAnnouncements(role);
 
   const announcements = await db.announcement.findMany({
-    where: whereClause,
-    orderBy: { date: "desc" },
+    where: canManage ? {} : announcementReadFilter(role),
+    orderBy: prismaOrder.announcement,
   });
 
   return (
     <PageLayout session={session} title="Announcements">
-      <AnnouncementsClient announcements={announcements} />
+      <AnnouncementsClient
+        announcements={announcements}
+        canManage={canManage}
+        role={role ?? "STUDENT"}
+        userName={user?.name ?? ""}
+        manageAnnouncements={canManage ? announcements : []}
+      />
     </PageLayout>
   );
 }

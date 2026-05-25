@@ -16,6 +16,8 @@ import Input, { Textarea } from "@/components/ui/Input";
 import { Skeleton, SkeletonTable } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { staggerContainer, easeOut } from "@/components/motion/MotionConfig";
+import { targetBadgeLabel } from "@/lib/announcements";
+import { sortByDesc } from "@/lib/sortOrder";
 
 interface Props { session: Session }
 
@@ -50,7 +52,10 @@ function StaffLeaveSection() {
   useEffect(() => {
     fetch("/api/hod/staff-leave")
       .then(r => r.json())
-      .then(d => { setStaffLeaves(Array.isArray(d) ? d : []); setLoading(false); })
+      .then(d => {
+        setStaffLeaves(Array.isArray(d) ? sortByDesc(d, (l) => l.submittedAt) : []);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 
@@ -259,7 +264,10 @@ export default function HodClient({ session }: Props) {
       if (!loadedTabs.has("leave") && !loadedTabs.has("overview")) {
         setLoadingL(true);
         fetch("/api/hod/leave")
-          .then(r => r.json()).then(d => { setLeaves(Array.isArray(d) ? d : []); setLoadingL(false); })
+          .then(r => r.json()).then(d => {
+            setLeaves(Array.isArray(d) ? sortByDesc(d, (l) => l.submittedAt) : []);
+            setLoadingL(false);
+          })
           .catch(() => setLoadingL(false));
       }
     }
@@ -267,7 +275,10 @@ export default function HodClient({ session }: Props) {
       if (!loadedTabs.has("overview")) {
         setLoadingA(true);
         fetch("/api/admissions")
-          .then(r => r.json()).then(d => { setAdmissions(Array.isArray(d) ? d : []); setLoadingA(false); })
+          .then(r => r.json()).then(d => {
+            setAdmissions(Array.isArray(d) ? sortByDesc(d, (a) => a.submittedAt) : []);
+            setLoadingA(false);
+          })
           .catch(() => setLoadingA(false));
       }
     }
@@ -329,10 +340,16 @@ export default function HodClient({ session }: Props) {
     setLoadedTabs(new Set(["overview"]));
 
     fetch("/api/hod/leave")
-      .then(r => r.json()).then(d => { setLeaves(Array.isArray(d) ? d : []); setLoadingL(false); })
+      .then(r => r.json()).then(d => {
+        setLeaves(Array.isArray(d) ? sortByDesc(d, (l) => l.submittedAt) : []);
+        setLoadingL(false);
+      })
       .catch(() => setLoadingL(false));
     fetch("/api/admissions")
-      .then(r => r.json()).then(d => { setAdmissions(Array.isArray(d) ? d : []); setLoadingA(false); })
+      .then(r => r.json()).then(d => {
+        setAdmissions(Array.isArray(d) ? sortByDesc(d, (a) => a.submittedAt) : []);
+        setLoadingA(false);
+      })
       .catch(() => setLoadingA(false));
     fetch("/api/hod/staff")
       .then(r => r.json()).then(d => { setStaff(Array.isArray(d) ? d : []); setLoadingS(false); })
@@ -461,13 +478,16 @@ export default function HodClient({ session }: Props) {
     setAnnLoading(false);
     if (res.ok) {
       const saved = await res.json();
-      if (editingId) {
-        setRecentAnns(prev => prev.map(a => a.id === editingId ? saved : a));
-        toast.success("Announcement updated", "Changes are now live.");
-      } else {
-        setRecentAnns(prev => [saved, ...prev].slice(0, 5));
-        toast.success("Announcement created", "It is now visible to all students.");
-      }
+      setRecentAnns((prev) =>
+        sortByDesc(
+          editingId ? prev.map((a) => (a.id === editingId ? saved : a)) : [saved, ...prev],
+          (a) => a.date
+        )
+      );
+      toast.success(
+        editingId ? "Announcement updated" : "Announcement created",
+        editingId ? "Changes are now live." : targetBadgeLabel(saved.target)
+      );
       resetForm();
     } else {
       toast.error("Failed", "Please try again.");
@@ -797,14 +817,14 @@ export default function HodClient({ session }: Props) {
                           <table className="w-full text-sm">
                             <thead>
                               <tr className="border-b border-gray-50">
-                                {["Name", "Email", "Role", "Assigned Class", "Students", "Pending Leave"].map(h => (
+                                {["Name", "Email", "Role", "Assigned Class", "Students", "Pending Leave", "Today's Status"].map(h => (
                                   <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap">{h}</th>
                                 ))}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
                               {paginatedApproved.map((s) => (
-                                <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
+                                <tr key={s.id} className={`hover:bg-gray-50/50 transition-colors ${s.isOnLeave ? "bg-red-50/30" : ""}`}>
                                   <td className="px-4 py-3 font-medium text-[#444]">{s.name}</td>
                                   <td className="px-4 py-3 text-gray-400">{s.email}</td>
                                   <td className="px-4 py-3">
@@ -829,6 +849,15 @@ export default function HodClient({ session }: Props) {
                                       </span>
                                     ) : (
                                       <span className="text-xs text-gray-300">None</span>
+                                    )}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    {s.isOnLeave ? (
+                                      <Badge variant="danger" dot>Absent</Badge>
+                                    ) : s.isFreeRightNow ? (
+                                      <Badge variant="success" dot>Active</Badge>
+                                    ) : (
+                                      <Badge variant="info" dot>In Class</Badge>
                                     )}
                                   </td>
                                 </tr>
@@ -881,7 +910,7 @@ export default function HodClient({ session }: Props) {
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                           {paginatedTeachers.map((s) => (
-                            <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
+                            <tr key={s.id} className={`hover:bg-gray-50/50 transition-colors ${s.isOnLeave ? "bg-red-50/30" : ""}`}>
                               <td className="px-4 py-3 font-medium text-[#444]">{s.name}</td>
                               <td className="px-4 py-3 text-gray-400">{s.email}</td>
                               <td className="px-4 py-3">
@@ -909,9 +938,15 @@ export default function HodClient({ session }: Props) {
                                 )}
                               </td>
                               <td className="px-4 py-3">
-                                <Badge variant={s.isActive ? "success" : "neutral"} dot>
-                                  {s.isActive ? "Active" : "Inactive"}
-                                </Badge>
+                                {!s.isActive ? (
+                                  <Badge variant="neutral" dot>Inactive</Badge>
+                                ) : s.isOnLeave ? (
+                                  <Badge variant="danger" dot>Absent</Badge>
+                                ) : s.isFreeRightNow ? (
+                                  <Badge variant="success" dot>Active</Badge>
+                                ) : (
+                                  <Badge variant="info" dot>In Class</Badge>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -1033,7 +1068,7 @@ export default function HodClient({ session }: Props) {
               animate={{ opacity: 1, y: 0 }}
               transition={easeOut}
             >
-              <Card title={editingId ? "Edit Announcement" : "Create Announcement"} subtitle="Will be visible to all students immediately" delay={0}>
+              <Card title={editingId ? "Edit Announcement" : "Create Announcement"} subtitle="Choose who will see this notice" delay={0}>
                 <form onSubmit={handleCreateAnnouncement} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Input
@@ -1077,9 +1112,9 @@ export default function HodClient({ session }: Props) {
                         onChange={e => setAnnForm(f => ({ ...f, target: e.target.value }))}
                         className="w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-[#444] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                       >
-                        <option value="BOTH">Both (Students & Staff)</option>
                         <option value="STUDENT">Students Only</option>
-                        <option value="STAFF">Staff Only</option>
+                        <option value="STAFF">Teaching Staff Only</option>
+                        <option value="BOTH">Students & Teaching Staff</option>
                       </select>
                     </div>
                   </div>
@@ -1145,9 +1180,7 @@ export default function HodClient({ session }: Props) {
                           ann.target === "STAFF" ? "bg-purple-50 text-purple-700" :
                           "bg-blue-50 text-blue-700"
                         }`}>
-                          {ann.target === "STUDENT" ? "Students Only" :
-                           ann.target === "STAFF" ? "Staff Only" :
-                           "Everyone"}
+                          {targetBadgeLabel(ann.target)}
                         </span>
                         <span className="text-[10px] text-gray-400">{new Date(ann.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
                       </div>

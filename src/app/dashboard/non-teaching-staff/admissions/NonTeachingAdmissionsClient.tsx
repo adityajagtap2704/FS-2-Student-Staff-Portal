@@ -7,6 +7,7 @@ import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { SkeletonTable } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
+import { sortByDesc } from "@/lib/sortOrder";
 
 type Admission = {
   id: number;
@@ -35,7 +36,10 @@ export default function NonTeachingAdmissionsClient() {
   useEffect(() => {
     fetch("/api/admissions")
       .then(r => r.json())
-      .then(d => { setAdmissions(Array.isArray(d) ? d : []); setLoading(false); })
+      .then(d => {
+        setAdmissions(Array.isArray(d) ? sortByDesc(d, (a) => a.submittedAt) : []);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 

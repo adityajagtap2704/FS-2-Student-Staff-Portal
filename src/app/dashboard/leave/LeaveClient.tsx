@@ -11,6 +11,7 @@ import LeaveRequestForm from "./LeaveRequestForm";
 import { staggerContainer, easeOut } from "@/components/motion/MotionConfig";
 import { useToast } from "@/components/ui/Toast";
 import type { LeaveBalance } from "@/lib/leaveBalance";
+import { sortByDesc } from "@/lib/sortOrder";
 
 interface Props {
   initialData: any[];
@@ -55,7 +56,11 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
       const leaveRes = await fetch(endpoint);
       if (leaveRes.ok) {
         const leaveData = await leaveRes.json();
-        setData(Array.isArray(leaveData) ? leaveData : []);
+        setData(
+          Array.isArray(leaveData)
+            ? sortByDesc(leaveData, (l) => l.submittedAt)
+            : []
+        );
       } else {
         console.error("Failed to refresh leave data:", leaveRes.status);
       }
