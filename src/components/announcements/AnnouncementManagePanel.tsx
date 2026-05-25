@@ -150,7 +150,9 @@ export default function AnnouncementManagePanel({
         <div>
           <h2 className="text-lg font-bold text-[#444]">Manage Announcements</h2>
           <p className="text-sm text-gray-400 mt-0.5">
-            Choose who receives each notice: students or teaching staff only.
+            {role === "HOD"
+              ? "Create notices for students, teaching staff, non-teaching staff, or all."
+              : "Create notices for students, teaching staff, or both."}
           </p>
         </div>
         <Button
@@ -226,7 +228,8 @@ export default function AnnouncementManagePanel({
                   <p className="text-[11px] text-gray-400">
                     {form.target === "STUDENT" && "Visible to students only."}
                     {form.target === "STAFF" && "Visible to class teachers only."}
-                    {form.target === "BOTH" && "Visible to students and class teachers."}
+                    {form.target === "NON_TEACHING_STAFF" && "Visible to non-teaching staff only."}
+                    {form.target === "BOTH" && "Visible to students, teaching staff, and non-teaching staff."}
                   </p>
                 </div>
               </div>
@@ -291,12 +294,20 @@ export default function AnnouncementManagePanel({
                   <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{ann.description}</p>
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <Button size="xs" variant="outline" onClick={() => openEdit(ann)}>
-                    Edit
-                  </Button>
-                  <Button size="xs" variant="danger" onClick={() => handleDelete(ann.id)}>
-                    Delete
-                  </Button>
+                  {role === "NON_TEACHING_STAFF" && ann.author !== userName ? (
+                    <span className="text-[10px] font-semibold px-2 py-1 rounded-full bg-gray-100 text-gray-500">
+                      Read-only
+                    </span>
+                  ) : (
+                    <>
+                      <Button size="xs" variant="outline" onClick={() => openEdit(ann)}>
+                        Edit
+                      </Button>
+                      <Button size="xs" variant="danger" onClick={() => handleDelete(ann.id)}>
+                        Delete
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

@@ -8,6 +8,7 @@ import {
   isValidTargetForRole,
 } from "@/lib/announcements";
 import { prismaOrder } from "@/lib/sortOrder";
+import { createNotificationNoDuplicates } from "@/lib/notificationHelper";
 
 export async function GET(req: Request) {
   try {
@@ -72,6 +73,60 @@ export async function POST(req: Request) {
         imageUrl: imageUrl?.trim() || null,
       },
     });
+
+    // Create notifications for relevant audience
+    try {
+      if (target === "STUDENT" || target === "BOTH") {
+        // Notify all active students
+        const students = await db.student.findMany({
+          where: { isActive: true },
+          select: { id: true },
+        });
+
+        for (const student of students) {
+          await createNotificationNoDuplicates(
+            student.id,
+            "GENERAL",
+            `New Announcement: ${title}`,
+            description,
+            60 // 60 minute window to prevent duplicates
+          );
+        }
+      }
+      
+      if (target === "STAFF" || target === "BOTH") {
+        // Notify all active teaching staff
+        const staff = await db.staff.findMany({
+          where: { 
+            isActive: true,
+            role: "CLASS_TEACHER"
+          },
+          select: { id: true, email: true },
+        });
+
+        // For staff, we could send emails or create a staff notification table
+        // For now, log that staff should be notified
+        console.log(`[ANNOUNCEMENT] ${staff.length} teaching staff should be notified about: ${title}`);
+      }
+
+      if (target === "NON_TEACHING_STAFF" || target === "BOTH") {
+        // Notify all active non-teaching staff
+        const ntsStaff = await db.staff.findMany({
+          where: { 
+            isActive: true,
+            role: "NON_TEACHING_STAFF"
+          },
+          select: { id: true, email: true },
+        });
+
+        // For non-teaching staff, we could send emails or create a staff notification table
+        // For now, log that non-teaching staff should be notified
+        console.log(`[ANNOUNCEMENT] ${ntsStaff.length} non-teaching staff should be notified about: ${title}`);
+      }
+    } catch (notifError) {
+      console.error("Error creating notifications:", notifError);
+      // Don't fail the announcement creation if notifications fail
+    }
 
     return NextResponse.json(announcement);
   } catch (error) {

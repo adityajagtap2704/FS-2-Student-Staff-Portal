@@ -272,7 +272,13 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     if (!["STUDENT", "CLASS_TEACHER", "HOD", "NON_TEACHING_STAFF"].includes(user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-    if (fee.status !== "PAID") {
+
+    // Check if fee is fully paid OR if there are installments with at least one paid
+    const hasInstallments = fee.installments && fee.installments.length > 0;
+    const hasAnyPaidInstallment = hasInstallments && fee.installments.some((i: any) => i.status === "PAID" || Number(i.paidAmount) > 0);
+    const isFullyPaid = fee.status === "PAID";
+
+    if (!isFullyPaid && !hasAnyPaidInstallment) {
       return NextResponse.json({ error: "Receipt not available — fee not yet paid" }, { status: 409 });
     }
 
@@ -299,8 +305,6 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const paidAmount    = Number(fee.paidAmount);
 
     // ── Decide: installment receipt OR simple receipt ─────────────────────────
-    const hasInstallments = fee.installments && fee.installments.length > 0;
-
     let html: string;
 
     if (hasInstallments) {

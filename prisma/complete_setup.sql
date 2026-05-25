@@ -174,7 +174,7 @@ CREATE TABLE announcements (
   id INT AUTO_INCREMENT PRIMARY KEY,
   title VARCHAR(191) NOT NULL,
   category ENUM('Events','Exams','Holidays','General') NOT NULL,
-  target ENUM('STAFF','STUDENT','BOTH') DEFAULT 'BOTH',
+  target ENUM('STAFF','STUDENT','NON_TEACHING_STAFF','BOTH') DEFAULT 'BOTH',
   description TEXT NOT NULL,
   author VARCHAR(191) NOT NULL,
   date DATETIME(3) NOT NULL,
@@ -214,7 +214,7 @@ CREATE TABLE leave_requests (
 CREATE TABLE notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
   studentId INT NOT NULL,
-  type ENUM('LEAVE_APPROVED','LEAVE_REJECTED','ADMISSION_APPROVED','ADMISSION_REJECTED','GENERAL') NOT NULL,
+  type ENUM('LEAVE_APPROVED','LEAVE_REJECTED','ADMISSION_APPROVED','ADMISSION_REJECTED','BONAFIDE_APPROVED','BONAFIDE_REJECTED','GENERAL') NOT NULL,
   title VARCHAR(191) NOT NULL,
   message TEXT NOT NULL,
   isRead BOOLEAN DEFAULT FALSE,
@@ -1266,7 +1266,26 @@ UNION ALL SELECT 'substitute_assignments', COUNT(*) FROM substitute_assignments;
 
 
 -- ============================================================================
--- TABLE 27: PAYMENT_WEBHOOK_LOGS (if not exists)
+-- TABLE 27: BONAFIDE_REQUESTS
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS bonafide_requests (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  studentId INT NOT NULL,
+  reason LONGTEXT NOT NULL,
+  status ENUM('PENDING','APPROVED','REJECTED') DEFAULT 'PENDING',
+  approvedBy INT,
+  rejectionReason LONGTEXT,
+  requestedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  approvedAt DATETIME,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (studentId) REFERENCES students(id) ON DELETE CASCADE,
+  INDEX idx_studentId (studentId),
+  INDEX idx_status (status),
+  INDEX idx_requestedAt (requestedAt)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================================
+-- TABLE 28: PAYMENT_WEBHOOK_LOGS (if not exists)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS payment_webhook_logs (
   id INT AUTO_INCREMENT PRIMARY KEY,
