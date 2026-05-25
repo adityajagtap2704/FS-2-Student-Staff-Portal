@@ -45,7 +45,7 @@ export async function GET() {
 
     // Enrich with leave balance for each student
     const result = await Promise.all(
-      leaveRequests.map(async (lr) => {
+      leaveRequests.map(async (lr: any) => {
         const balance = lr.studentId ? await getLeaveBalance(lr.studentId) : null;
         return { ...lr, leaveBalance: balance };
       })

@@ -28,30 +28,34 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
   const [data, setData] = useState(initialData);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [currentBalance, setCurrentBalance] = useState(balance);
+  const [isStaff, setIsStaff] = useState(false);
+
+  // Detect role once on mount
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then(r => r.json())
+      .then(s => {
+        const role = s?.user?.role;
+        setIsStaff(["CLASS_TEACHER", "HOD", "NON_TEACHING_STAFF"].includes(role));
+      })
+      .catch(() => {});
+  }, []);
 
   // Auto-refresh every 30 seconds to check for HOD approvals
   useEffect(() => {
-    const interval = setInterval(() => {
-      refreshData();
-    }, 30000); // 30 seconds
-
+    const interval = setInterval(() => refreshData(), 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isStaff]);
 
   const refreshData = async () => {
     try {
       setIsRefreshing(true);
-      
-      // Fetch leave requests from the same endpoint used by the server
-      const leaveRes = await fetch("/api/leave");
-      
+      // Use the correct endpoint based on role
+      const endpoint = isStaff ? "/api/staff/leave" : "/api/leave";
+      const leaveRes = await fetch(endpoint);
       if (leaveRes.ok) {
         const leaveData = await leaveRes.json();
         setData(Array.isArray(leaveData) ? leaveData : []);
-        
-        // Recalculate balance on client side from the fetched data
-        // Get the latest balance by re-fetching the page or using the existing data
-        // For now, just update the data and let the page refresh show updated balance
       } else {
         console.error("Failed to refresh leave data:", leaveRes.status);
       }
@@ -67,9 +71,18 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
   const yearlyUsedPct     = Math.round((currentBalance.yearlyUsed     / currentBalance.yearlyLimit)  * 100);
   const yearlyPendingPct  = Math.round((currentBalance.yearlyPending  / currentBalance.yearlyLimit)  * 100);
 
-  // Fix #14 — cancel a PENDING leave request
+  // Cancel a PENDING leave request — uses role-appropriate endpoint
   const handleCancel = async (id: number) => {
-    const res = await fetch(`/api/leave/${id}`, { method: "DELETE" });
+    let res: Response;
+    if (isStaff) {
+      res = await fetch("/api/staff/leave", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+    } else {
+      res = await fetch(`/api/leave/${id}`, { method: "DELETE" });
+    }
     if (res.ok) {
       setData(prev => prev.filter(r => r.id !== id));
       toast.success("Request cancelled", "Your leave request has been removed.");

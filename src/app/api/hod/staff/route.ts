@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import db from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -69,7 +71,7 @@ export async function GET(req: Request) {
     }
 
     const staffWithStatus = await Promise.all(
-      staff.map(async (s) => {
+      staff.map(async (s: any) => {
         let studentCount = 0;
         if (s.assignedClass) {
           studentCount = await db.student.count({

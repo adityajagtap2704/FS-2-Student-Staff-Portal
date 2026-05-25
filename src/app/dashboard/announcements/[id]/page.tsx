@@ -95,7 +95,7 @@ export default async function AnnouncementDetailPage({
             </div>
 
             <div className="space-y-3">
-              {announcement.description.split("\n").map((para, i) =>
+              {announcement.description.split("\n").map((para: string, i: number) =>
                 para.trim() ? (
                   <p key={i} className="text-sm text-gray-600 leading-relaxed">
                     {para}
@@ -113,7 +113,7 @@ export default async function AnnouncementDetailPage({
               More Announcements
             </p>
             <div className="space-y-2">
-              {related.map((a) => {
+              {related.map((a: any) => {
                 const relCfg = categoryConfig[a.category as Category];
                 return (
                   <Link

@@ -70,8 +70,8 @@ export async function POST(req: Request) {
       const studentIdValue = Number(user.id);
       const allFees = await db.fee.findMany({ where: { studentId: studentIdValue } });
       const unpaidFees = allFees
-        .filter((item) => Number(item.paidAmount) < Number(item.amount))
-        .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+        .filter((item: any) => Number(item.paidAmount) < Number(item.amount))
+        .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
       if (unpaidFees.length === 0) {
         return NextResponse.json({ error: "No outstanding fees found" }, { status: 400 });

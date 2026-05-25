@@ -39,7 +39,7 @@ export async function recordSuccessfulPayment(input: {
 
   // 1) Upsert order row as PAID (idempotent)
   await db.$executeRaw(
-    Prisma.sql`
+    (Prisma as any).sql`
       INSERT INTO payment_orders
         (fee_id, student_id, amount_paise, currency, razorpay_order_id, status, receipt, created_at, updated_at)
       VALUES
@@ -57,7 +57,7 @@ export async function recordSuccessfulPayment(input: {
 
   // 2) Insert transaction (idempotent)
   await db.$executeRaw(
-    Prisma.sql`
+    (Prisma as any).sql`
       INSERT IGNORE INTO payment_transactions
         (razorpay_order_id, razorpay_payment_id, razorpay_signature, raw_response, created_at)
       VALUES
@@ -67,7 +67,7 @@ export async function recordSuccessfulPayment(input: {
 
   // 3) Create receipt (idempotent)
   await db.$executeRaw(
-    Prisma.sql`
+    (Prisma as any).sql`
       INSERT IGNORE INTO fee_receipts
         (razorpay_order_id, issued_at, created_at)
       VALUES
@@ -78,7 +78,7 @@ export async function recordSuccessfulPayment(input: {
 
 export async function getReceiptByFeeId(feeId: number) {
   const rows = (await db.$queryRaw(
-    Prisma.sql`
+    (Prisma as any).sql`
       SELECT
         po.razorpay_order_id   AS razorpayOrderId,
         po.amount_paise        AS amountPaise,
@@ -120,7 +120,7 @@ export async function listPaymentsForRole(input: {
 
   if (input.role === "STUDENT") {
     const results = (await db.$queryRaw(
-      Prisma.sql`
+      (Prisma as any).sql`
         SELECT
           f.id                   AS feeId,
           f.studentId            AS studentId,
@@ -153,7 +153,7 @@ export async function listPaymentsForRole(input: {
 
   if (input.role === "CLASS_TEACHER") {
     const results = (await db.$queryRaw(
-      Prisma.sql`
+      (Prisma as any).sql`
         SELECT
           f.id                   AS feeId,
           f.studentId            AS studentId,
@@ -185,7 +185,7 @@ export async function listPaymentsForRole(input: {
   }
 
   const results = (await db.$queryRaw(
-    Prisma.sql`
+    (Prisma as any).sql`
       SELECT
         f.id                   AS feeId,
         f.studentId            AS studentId,

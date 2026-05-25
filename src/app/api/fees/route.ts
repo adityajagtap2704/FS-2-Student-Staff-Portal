@@ -23,8 +23,8 @@ export async function GET() {
     });
 
     // Compute totals using Decimal for precision
-    const totalDue = fees.reduce((acc, f) => acc + Number(f.amount), 0);
-    const totalPaid = fees.reduce((acc, f) => acc + Number(f.paidAmount), 0);
+    const totalDue = fees.reduce<number>((acc, f) => acc + Number(f.amount), 0);
+    const totalPaid = fees.reduce<number>((acc, f) => acc + Number(f.paidAmount), 0);
     const outstanding = totalDue - totalPaid;
 
     return NextResponse.json({

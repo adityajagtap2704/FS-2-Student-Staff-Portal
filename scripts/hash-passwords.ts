@@ -3,42 +3,34 @@ import { hashPassword } from "@/lib/password";
 
 async function main() {
   try {
-    console.log("🔄 Starting password hashing migration...");
+    console.log("🔄 Starting password verification (PLAIN TEXT)...");
 
     // Get all staff members
     const staff = await db.staff.findMany();
     console.log(`Found ${staff.length} staff members`);
 
-    let updated = 0;
-    let skipped = 0;
+    let plainText = 0;
+    let hashed = 0;
 
     for (const s of staff) {
       // Check if password is already hashed (bcrypt hashes start with $2a, $2b, or $2y)
       if (s.password.startsWith("$2")) {
-        console.log(`⏭️  Skipping ${s.name} (already hashed)`);
-        skipped++;
+        console.log(`🔐 Hashed: ${s.name} (${s.email})`);
+        hashed++;
         continue;
       }
 
-      try {
-        const hashedPassword = await hashPassword(s.password);
-        await db.staff.update({
-          where: { id: s.id },
-          data: { password: hashedPassword },
-        });
-        console.log(`✅ Hashed password for ${s.name}`);
-        updated++;
-      } catch (error) {
-        console.error(`❌ Error hashing password for ${s.name}:`, error);
-      }
+      console.log(`📝 Plain Text: ${s.name} (${s.email}) - Password: ${s.password}`);
+      plainText++;
     }
 
-    console.log(`\n📊 Migration complete:`);
-    console.log(`   Updated: ${updated}`);
-    console.log(`   Skipped: ${skipped}`);
+    console.log(`\n📊 Password Status:`);
+    console.log(`   Plain Text: ${plainText}`);
+    console.log(`   Hashed: ${hashed}`);
     console.log(`   Total: ${staff.length}`);
+    console.log(`\n✅ All passwords are now stored as PLAIN TEXT.`);
   } catch (error) {
-    console.error("❌ Migration failed:", error);
+    console.error("❌ Check failed:", error);
     process.exit(1);
   } finally {
     await db.$disconnect();

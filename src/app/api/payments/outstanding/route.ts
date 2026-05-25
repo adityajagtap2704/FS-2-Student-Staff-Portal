@@ -61,9 +61,9 @@ export async function POST(req: Request) {
     }
 
     const fees = await db.fee.findMany({ where: { studentId: currentStudentId } });
-    const unpaidFees = fees.filter((fee) => Number(fee.paidAmount) < Number(fee.amount));
+    const unpaidFees = fees.filter((fee: any) => Number(fee.paidAmount) < Number(fee.amount));
     const outstandingBalance = unpaidFees.reduce(
-      (sum, fee) => sum + (Number(fee.amount) - Number(fee.paidAmount)),
+      (sum: number, fee: any) => sum + (Number(fee.amount) - Number(fee.paidAmount)),
       0
     );
 
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     }
 
     const sortedFees = unpaidFees.sort(
-      (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
+      (a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
     );
     const firstFeeId = sortedFees[0]?.id;
     if (!firstFeeId) {

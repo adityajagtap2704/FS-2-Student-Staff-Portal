@@ -36,16 +36,24 @@ const teacherLinks = [
 ];
 
 const hodLinks = [
-  { href: "/dashboard/hod",                     label: "HOD Dashboard", icon: LayoutDashboard, exact: true  },
-  { href: "/dashboard/hod?tab=leave",           label: "Leave Approval", icon: Clock,          exact: true  },
-  { href: "/dashboard/hod?tab=admissions",      label: "Admissions",    icon: BookOpen,       exact: true  },
-  { href: "/dashboard/hod?tab=staff",           label: "Staff Portal",  icon: CheckCircle2,   exact: true  },
-  { href: "/dashboard/hod?tab=fees",            label: "Fees Management",icon: CreditCard,     exact: true  },
-  { href: "/dashboard/hod/timetable",           label: "Timetable",     icon: TableProperties, exact: false },
-  { href: "/dashboard/hod/class-assignments",   label: "Class Assignments", icon: Users,      exact: false },
-  { href: "/dashboard/hod/outstanding-payments",label: "Outstanding Fees", icon: CreditCard,  exact: false },
-  { href: "/dashboard/hod/documents",           label: "Document Verification", icon: FileText, exact: false },
-  { href: "/dashboard/announcements",           label: "Announcements", icon: Megaphone,       exact: false },
+  { href: "/dashboard/hod",                     label: "HOD Dashboard",    icon: LayoutDashboard, exact: true  },
+  { href: "/dashboard/hod?tab=leave",           label: "Leave Approval",   icon: Clock,           exact: true  },
+  { href: "/dashboard/hod?tab=staff",           label: "Staff Portal",     icon: CheckCircle2,    exact: true  },
+  { href: "/dashboard/hod?tab=fees",            label: "Fees Management",  icon: CreditCard,      exact: true  },
+  { href: "/dashboard/hod/timetable",           label: "Timetable",        icon: TableProperties, exact: false },
+  { href: "/dashboard/hod/class-assignments",   label: "Class Assignments",icon: Users,           exact: false },
+  { href: "/dashboard/hod/outstanding-payments",label: "Outstanding Fees", icon: CreditCard,      exact: false },
+  { href: "/dashboard/announcements",           label: "Announcements",    icon: Megaphone,       exact: false },
+];
+
+const nonTeachingStaffLinks = [
+  { href: "/dashboard/non-teaching-staff",             label: "Dashboard",             icon: LayoutDashboard, exact: true  },
+  { href: "/dashboard/non-teaching-staff/admissions",  label: "Admissions",            icon: BookOpen,        exact: false },
+  { href: "/dashboard/non-teaching-staff/installments",label: "Installment Requests",  icon: CreditCard,      exact: false },
+  { href: "/dashboard/non-teaching-staff/documents",   label: "Document Verification", icon: FileText,        exact: false },
+  { href: "/dashboard/leave",                          label: "Apply for Leave",        icon: CalendarOff,     exact: false },
+  { href: "/dashboard/announcements",                  label: "Announcements",          icon: Megaphone,       exact: false },
+  { href: "/dashboard/profile",                        label: "My Profile",             icon: UserCircle,      exact: false },
 ];
 
 interface SidebarProps {
@@ -62,13 +70,15 @@ export default function Sidebar({ open, onClose, session }: SidebarProps) {
 
   const role = (session?.user as any)?.role ?? "STUDENT";
   const navLinks =
-    role === "HOD"           ? hodLinks     :
-    role === "CLASS_TEACHER" ? teacherLinks :
+    role === "HOD"                ? hodLinks                :
+    role === "NON_TEACHING_STAFF" ? nonTeachingStaffLinks   :
+    role === "CLASS_TEACHER"      ? teacherLinks            :
     studentLinks;
 
   const portalLabel =
-    role === "HOD"           ? "HOD Portal"     :
-    role === "CLASS_TEACHER" ? "Staff Portal"   :
+    role === "HOD"                ? "HOD Portal"            :
+    role === "NON_TEACHING_STAFF" ? "Non-Teaching Staff"   :
+    role === "CLASS_TEACHER"      ? "Staff Portal"          :
     "Student Portal";
 
   return (

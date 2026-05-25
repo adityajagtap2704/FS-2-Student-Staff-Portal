@@ -1,9 +1,7 @@
 import db from "@/lib/db";
-import { NotificationType } from "@prisma/client";
-
 interface CreateNotificationParams {
   studentId: number;
-  type: NotificationType;
+  type: string;
   title: string;
   message: string;
 }
@@ -21,7 +19,7 @@ export async function createNotification({
     const notification = await db.notification.create({
       data: {
         studentId,
-        type,
+        type: type as any,
         title,
         message,
       },

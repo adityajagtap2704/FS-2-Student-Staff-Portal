@@ -33,7 +33,7 @@ export default function LeaveRequestForm({ balance }: Props) {
         if (response.ok) {
           const session = await response.json();
           const role = session?.user?.role;
-          setIsStaff(role === "CLASS_TEACHER" || role === "HOD");
+          setIsStaff(role === "CLASS_TEACHER" || role === "HOD" || role === "NON_TEACHING_STAFF");
         }
       } catch (error) {
         console.error("Error checking user role:", error);

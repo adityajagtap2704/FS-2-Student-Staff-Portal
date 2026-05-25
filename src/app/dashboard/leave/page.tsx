@@ -12,7 +12,7 @@ export default async function LeavePage() {
 
   const user = session.user as any;
   const userId = parseInt(user.id);
-  const isStaff = user.role === "CLASS_TEACHER" || user.role === "HOD";
+  const isStaff = user.role === "CLASS_TEACHER" || user.role === "HOD" || user.role === "NON_TEACHING_STAFF";
 
   // Fetch leave requests based on user type
   const leaveRequests = await db.leaveRequest.findMany({
@@ -25,11 +25,11 @@ export default async function LeavePage() {
 
   const stats = {
     total:     leaveRequests.length,
-    approved:  leaveRequests.filter((r) => r.status === "APPROVED").length,
-    pending:   leaveRequests.filter((r) => r.status === "PENDING").length,
+    approved:  leaveRequests.filter((r: any) => r.status === "APPROVED").length,
+    pending:   leaveRequests.filter((r: any) => r.status === "PENDING").length,
     daysTaken: leaveRequests
-      .filter((r) => r.status === "APPROVED")
-      .reduce((acc, r) => {
+      .filter((r: any) => r.status === "APPROVED")
+      .reduce((acc: number, r: any) => {
         const diff = new Date(r.toDate).getTime() - new Date(r.fromDate).getTime();
         return acc + Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1;
       }, 0),

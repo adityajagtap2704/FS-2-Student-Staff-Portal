@@ -89,7 +89,7 @@ export async function POST(req: Request) {
       },
     });
     const pendingDays = pendingRequests.reduce(
-      (acc, r) => acc + countDays(r.fromDate, r.toDate),
+      (acc: number, r: any) => acc + countDays(r.fromDate, r.toDate),
       0
     );
 
@@ -103,11 +103,11 @@ export async function POST(req: Request) {
     }
 
     // Check monthly limit for current month if it's spanned (including PENDING)
-    if (spannedMonths.has(`${currentYear}-${currentMonth}`)) {
-      const pendingThisMonth = pendingRequests.filter((r) => {
+      if (spannedMonths.has(`${currentYear}-${currentMonth}`)) {
+        const pendingThisMonth = pendingRequests.filter((r: any) => {
         const d = new Date(r.fromDate);
         return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-      }).reduce((acc, r) => acc + countDays(r.fromDate, r.toDate), 0);
+      }).reduce((acc: number, r: any) => acc + countDays(r.fromDate, r.toDate), 0);
 
       if (balance.monthlyUsed + pendingThisMonth + requestedDays > MONTHLY_LIMIT) {
         return NextResponse.json(

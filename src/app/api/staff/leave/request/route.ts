@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     const session = await getServerSession(authOptions);
     const user = session?.user as any;
     
-    if (!session || (user?.role !== "CLASS_TEACHER" && user?.role !== "HOD")) {
+    if (!session || !["CLASS_TEACHER", "HOD", "NON_TEACHING_STAFF"].includes(user?.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       },
     });
     const pendingDays = pendingRequests.reduce(
-      (acc, r) => acc + countDays(r.fromDate, r.toDate),
+      (acc: number, r: any) => acc + countDays(r.fromDate, r.toDate),
       0
     );
 
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
       },
     });
     const approvedDays = approvedRequests.reduce(
-      (acc, r) => acc + countDays(r.fromDate, r.toDate),
+      (acc: number, r: any) => acc + countDays(r.fromDate, r.toDate),
       0
     );
 
@@ -100,16 +100,16 @@ export async function POST(req: Request) {
     }
 
     // Check monthly limit for current month if it's spanned (including PENDING)
-    if (spannedMonths.has(`${currentYear}-${currentMonth}`)) {
-      const pendingThisMonth = pendingRequests.filter((r) => {
+      if (spannedMonths.has(`${currentYear}-${currentMonth}`)) {
+        const pendingThisMonth = pendingRequests.filter((r: any) => {
         const d = new Date(r.fromDate);
         return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-      }).reduce((acc, r) => acc + countDays(r.fromDate, r.toDate), 0);
+      }).reduce((acc: number, r: any) => acc + countDays(r.fromDate, r.toDate), 0);
 
-      const approvedThisMonth = approvedRequests.filter((r) => {
+        const approvedThisMonth = approvedRequests.filter((r: any) => {
         const d = new Date(r.fromDate);
         return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
-      }).reduce((acc, r) => acc + countDays(r.fromDate, r.toDate), 0);
+        }).reduce((acc: number, r: any) => acc + countDays(r.fromDate, r.toDate), 0);
 
       const monthlyUsed = approvedThisMonth + pendingThisMonth;
       const monthlyRemaining = Math.max(0, MONTHLY_LIMIT - monthlyUsed);
