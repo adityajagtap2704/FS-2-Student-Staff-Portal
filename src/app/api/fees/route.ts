@@ -19,7 +19,11 @@ export async function GET() {
 
     const fees = await db.fee.findMany({
       where: { studentId },
-      orderBy: { dueDate: "asc" },
+      // Paid fees first (by paidAt desc), then unpaid by dueDate asc
+      orderBy: [
+        { paidAt: "desc" },
+        { dueDate: "asc" },
+      ],
     });
 
     // Compute totals using Decimal for precision

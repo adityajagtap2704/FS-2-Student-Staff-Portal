@@ -6,6 +6,7 @@ import { Bell, CheckCircle2, XCircle, Info } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { easeOut, staggerContainer, staggerItem } from "@/components/motion/MotionConfig";
+import { sortByDesc } from "@/lib/sortOrder";
 
 interface Notification {
   id: number;
@@ -37,7 +38,11 @@ export default function NotificationsClient() {
   useEffect(() => {
     fetch("/api/notifications")
       .then(r => r.json())
-      .then(d => { setNotifications(d.notifications ?? []); setLoading(false); })
+      .then(d => {
+        const list = d.notifications ?? [];
+        setNotifications(sortByDesc(list, (n) => n.createdAt));
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 

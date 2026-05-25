@@ -130,10 +130,11 @@ export default function FeesClient() {
     });
   };
 
-  const downloadReceipt = async (feeId: number) => {
+  const downloadReceipt = (feeId: number, installmentId?: number) => {
     try {
       toast.info("Opening receipt...", "Receipt will open in a new tab.");
-      window.open(`/api/fees/${feeId}/receipt`, '_blank');
+      const q = installmentId ? `?installmentId=${installmentId}` : "";
+      window.open(`/api/fees/${feeId}/receipt${q}`, "_blank");
     } catch (e: any) {
       toast.error("Receipt", e?.message ?? "Failed to open receipt");
     }
@@ -283,8 +284,21 @@ export default function FeesClient() {
   // Add merged outstanding fees
   deduplicatedRecords.push(...Array.from(outstandingMap.values()));
 
-  // Re-sort by due date
-  deduplicatedRecords.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
+  // Sort: recently paid first (by paidAt desc), then unpaid by dueDate asc (soonest due first)
+  deduplicatedRecords.sort((a, b) => {
+    const aPaid = a.status === "PAID";
+    const bPaid = b.status === "PAID";
+
+    // Both paid → most recently paid first
+    if (aPaid && bPaid) {
+      return new Date(b.paidAt ?? b.dueDate).getTime() - new Date(a.paidAt ?? a.dueDate).getTime();
+    }
+    // Paid always comes before unpaid
+    if (aPaid) return -1;
+    if (bPaid) return 1;
+    // Both unpaid → soonest due date first (overdue/upcoming in order)
+    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  });
 
   const records_final = deduplicatedRecords;
 
@@ -365,7 +379,13 @@ export default function FeesClient() {
                 const cfg = statusConfig[row.status];
                 const isOverdue = row.status === "OVERDUE";
                 const isPaid = row.status === "PAID";
-                const hasInstallment = !!installmentData[row.id]?.request;
+                const instInfo = installmentData[row.id];
+                const hasInstallment = !!instInfo?.request;
+                const installmentsList = instInfo?.installments || [];
+                const installmentPlanApproved = instInfo?.request?.status === "APPROVED";
+                const anyInstallmentPaid = installmentsList.some((i) => i.status === "PAID");
+                const canDownloadReceipt =
+                  isPaid || (installmentPlanApproved && anyInstallmentPaid);
                 
                 return (
                   <>
@@ -401,7 +421,7 @@ export default function FeesClient() {
                       <td className="px-6 py-4 text-gray-400">{isPaid && row.paidAt ? new Date(row.paidAt).toLocaleDateString() : "—"}</td>
                       <td className="px-6 py-4"><Badge variant={cfg.variant} dot>{cfg.label}</Badge></td>
                       <td className="px-6 py-4 text-right">
-                        {isPaid ? (
+                        {canDownloadReceipt ? (
                           <motion.button
                             className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-primary transition-colors"
                             whileHover={{ scale: 1.05 }}
@@ -409,7 +429,7 @@ export default function FeesClient() {
                           >
                             <Download size={12} /> Receipt
                           </motion.button>
-                        ) : (
+                        ) : !isPaid ? (
                           <div className="flex flex-col items-end gap-2">
                             {isOverdue || row.paidAmount > 0 ? (
                               <Button
@@ -436,7 +456,7 @@ export default function FeesClient() {
                               </Button>
                             )}
                           </div>
-                        )}
+                        ) : null}
                       </td>
                     </motion.tr>
                     
@@ -445,9 +465,13 @@ export default function FeesClient() {
                       <tr key={`install-${row.id}`} className="bg-blue-50/30">
                         <td colSpan={6} className="px-6 py-4">
                           <InstallmentStatus
-                            installments={installmentData[row.id]?.installments || []}
-                            requestStatus={installmentData[row.id]?.request?.status || "PENDING"}
+                            feeId={row.id}
+                            installments={installmentsList}
+                            requestStatus={instInfo?.request?.status || "PENDING"}
                             onPaymentSuccess={reloadFees}
+                            onDownloadReceipt={(installmentId) =>
+                              downloadReceipt(row.id, installmentId)
+                            }
                           />
                         </td>
                       </tr>

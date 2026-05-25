@@ -2,12 +2,19 @@ import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import {
+  canManageAnnouncements,
+  canViewAnnouncement,
+  isValidTargetForRole,
+} from "@/lib/announcements";
 
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    const user = session?.user as { role?: string } | undefined;
     const id = parseInt((await params).id);
 
     const announcement = await db.announcement.findUnique({
@@ -16,6 +23,10 @@ export async function GET(
 
     if (!announcement) {
       return NextResponse.json({ error: "Announcement not found" }, { status: 404 });
+    }
+
+    if (session && !canViewAnnouncement(user?.role, announcement.target)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json(announcement);
@@ -31,12 +42,26 @@ export async function PUT(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const user    = session?.user as any;
-    if (!session || user?.role !== "HOD") {
+    const user = session?.user as { role?: string; name?: string } | undefined;
+    if (!session || !canManageAnnouncements(user?.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const id = parseInt((await params).id);
+    const announcement = await db.announcement.findUnique({ where: { id } });
+
+    if (!announcement) {
+      return NextResponse.json({ error: "Announcement not found" }, { status: 404 });
+    }
+
+    // Non-teaching staff can only edit their own announcements, not HOD announcements
+    if (user?.role === "NON_TEACHING_STAFF" && announcement.author !== user?.name) {
+      return NextResponse.json(
+        { error: "You can only edit your own announcements" },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { title, category, target, description, author, date, imageUrl } = body;
 
@@ -44,23 +69,27 @@ export async function PUT(
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const validTargets = ["STAFF", "STUDENT", "BOTH"];
-    const resolvedTarget = validTargets.includes(target) ? target : "BOTH";
+    if (!isValidTargetForRole(user?.role, target)) {
+      return NextResponse.json(
+        { error: "Invalid audience. Choose Students, Teaching Staff, or Non-Teaching Staff." },
+        { status: 400 }
+      );
+    }
 
-    const announcement = await db.announcement.update({
+    const updated = await db.announcement.update({
       where: { id },
       data: {
-        title:       title.trim(),
+        title: title.trim(),
         category,
-        target:      resolvedTarget as any,
+        target,
         description: description.trim(),
-        author:      author.trim(),
-        date:        new Date(date),
-        imageUrl:    imageUrl?.trim() || null,
+        author: author.trim(),
+        date: new Date(date),
+        imageUrl: imageUrl?.trim() || null,
       },
     });
 
-    return NextResponse.json(announcement);
+    return NextResponse.json(updated);
   } catch (error) {
     console.error("Announcement PUT Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
@@ -73,12 +102,25 @@ export async function DELETE(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    const user    = session?.user as any;
-    if (!session || user?.role !== "HOD") {
+    const user = session?.user as { role?: string; name?: string } | undefined;
+    if (!session || !canManageAnnouncements(user?.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const id = parseInt((await params).id);
+    const announcement = await db.announcement.findUnique({ where: { id } });
+
+    if (!announcement) {
+      return NextResponse.json({ error: "Announcement not found" }, { status: 404 });
+    }
+
+    // Non-teaching staff can only delete their own announcements, not HOD announcements
+    if (user?.role === "NON_TEACHING_STAFF" && announcement.author !== user?.name) {
+      return NextResponse.json(
+        { error: "You can only delete your own announcements" },
+        { status: 403 }
+      );
+    }
 
     await db.announcement.delete({
       where: { id },

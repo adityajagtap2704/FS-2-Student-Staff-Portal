@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CheckCircle2, Clock, AlertCircle, XCircle, ArrowUpRight } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle, XCircle, ArrowUpRight, Download } from "lucide-react";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
@@ -17,15 +17,19 @@ interface Installment {
 }
 
 interface InstallmentStatusProps {
+  feeId: number;
   installments: Installment[];
   requestStatus: "PENDING" | "APPROVED" | "REJECTED";
   onPaymentSuccess?: () => void;
+  onDownloadReceipt?: (installmentId: number) => void;
 }
 
 export default function InstallmentStatus({
+  feeId,
   installments,
   requestStatus,
   onPaymentSuccess,
+  onDownloadReceipt,
 }: InstallmentStatusProps) {
   const toast = useToast();
   const [payingId, setPayingId] = useState<number | null>(null);
@@ -108,6 +112,7 @@ export default function InstallmentStatus({
             "Your payment has been recorded successfully."
           );
           onPaymentSuccess?.();
+          onDownloadReceipt?.(installment.id);
         },
         modal: {
           ondismiss: () => toast.info("Payment cancelled", "You can retry anytime."),
@@ -229,7 +234,16 @@ export default function InstallmentStatus({
                 {getStatusBadge(installment.status)}
               </div>
 
-              {/* Pay button — only for the next payable installment */}
+              {isPaid && onDownloadReceipt && (
+                <Button
+                  size="xs"
+                  variant="outline"
+                  icon={<Download size={12} />}
+                  onClick={() => onDownloadReceipt(installment.id)}
+                >
+                  Receipt
+                </Button>
+              )}
               {isPayable && (
                 <Button
                   size="xs"

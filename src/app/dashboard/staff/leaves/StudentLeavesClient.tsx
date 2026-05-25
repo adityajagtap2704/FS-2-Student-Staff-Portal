@@ -11,6 +11,7 @@ import { SkeletonTable } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { staggerContainer, easeOut } from "@/components/motion/MotionConfig";
 import { motion } from "framer-motion";
+import { sortByDesc } from "@/lib/sortOrder";
 
 interface Props { session: Session }
 
@@ -30,7 +31,7 @@ export default function StudentLeavesClient({ session }: Props) {
     try {
       const res = await fetch("/api/staff/student-leaves");
       const data = await res.json();
-      setLeaves(Array.isArray(data) ? data : []);
+      setLeaves(Array.isArray(data) ? sortByDesc(data, (l) => l.submittedAt) : []);
     } catch (error) {
       console.error("Failed to fetch leaves:", error);
     } finally {

@@ -7,6 +7,7 @@ import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
+import { sortByDesc } from "@/lib/sortOrder";
 import { staggerContainer, staggerItem, easeOut } from "@/components/motion/MotionConfig";
 
 type Document = {
@@ -50,9 +51,7 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
       const res = await fetch(`/api/students/${studentId}/documents`);
       if (!res.ok) throw new Error("Failed to load documents");
       const data = await res.json();
-      const sorted = data.sort((a: Document, b: Document) =>
-        new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
-      );
+      const sorted = sortByDesc(data, (d: Document) => d.uploadedAt);
 
       // Detect status changes and show toast notifications
       setDocuments((prev) => {

@@ -17,11 +17,19 @@ interface Announcement {
   author: string;
   date: Date;
   imageUrl: string | null;
-  createdAt: Date;
+  createdAt: Date | null;
 }
+
+import AnnouncementManagePanel, {
+  type AnnouncementItem,
+} from "@/components/announcements/AnnouncementManagePanel";
 
 interface Props {
   announcements: Announcement[];
+  canManage?: boolean;
+  role?: string;
+  userName?: string;
+  manageAnnouncements?: AnnouncementItem[];
 }
 
 const categoryConfig: Record<Category, { variant: "info" | "warning" | "success" | "primary" | "purple" | "neutral"; emoji: string }> = {
@@ -36,7 +44,13 @@ const allCategories: Category[] = ["Events", "Exams", "Holidays", "General"];
 // The two most recent announcements are treated as "pinned/featured"
 const PINNED_COUNT = 2;
 
-export default function AnnouncementsClient({ announcements }: Props) {
+export default function AnnouncementsClient({
+  announcements,
+  canManage = false,
+  role = "STUDENT",
+  userName = "",
+  manageAnnouncements = [],
+}: Props) {
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
 
   const filtered = activeCategory
@@ -51,6 +65,14 @@ export default function AnnouncementsClient({ announcements }: Props) {
 
   return (
     <div className="space-y-5">
+      {canManage && (
+        <AnnouncementManagePanel
+          role={role}
+          userName={userName}
+          initialAnnouncements={manageAnnouncements}
+        />
+      )}
+
       <motion.div
         className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3"
         initial={{ opacity: 0, y: 12 }}
@@ -59,7 +81,11 @@ export default function AnnouncementsClient({ announcements }: Props) {
       >
         <div>
           <h1 className="text-2xl font-bold text-[#444] tracking-tight">Announcements</h1>
-          <p className="mt-1 text-sm text-gray-400">Stay up to date with the latest school notices.</p>
+          <p className="mt-1 text-sm text-gray-400">
+            {canManage
+              ? "Create notices for students or teaching staff. Below is what you would see as a reader."
+              : "Stay up to date with the latest school notices."}
+          </p>
         </div>
         <div className="flex items-center gap-1.5 flex-wrap">
           <motion.button

@@ -87,18 +87,23 @@ export async function GET(req: Request) {
           },
         });
 
-        // Determine if staff is currently on leave (absent)
+        // Determine if staff is currently on leave (absent today)
+        // Only APPROVED leaves where today falls within fromDate–toDate count as absent
         const today = new Date();
+        today.setHours(0, 0, 0, 0); // normalize to start of day
+        const todayEnd = new Date(today);
+        todayEnd.setHours(23, 59, 59, 999);
+
         const activeLeave = await db.leaveRequest.findFirst({
           where: {
             staffId: s.id,
             status: "APPROVED",
-            fromDate: { lte: today },
-            toDate: { gte: today },
+            fromDate: { lte: todayEnd },
+            toDate:   { gte: today },
           },
         });
 
-        const isOnLeave = !!activeLeave || pendingLeaveCount > 0;
+        const isOnLeave = !!activeLeave;
 
         // Check if there is an active substitute assignment for this staff's class
         let substituteId = null;

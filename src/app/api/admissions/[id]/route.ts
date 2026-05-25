@@ -33,7 +33,7 @@ export async function PATCH(
     // Phase 2: Status transition validation - only PENDING can be approved/rejected
     if (admission.status !== "PENDING") {
       return NextResponse.json({ 
-        error: `Cannot ${status.toLowerCase()} an admission that is already ${admission.status.toLowerCase()}`,
+        error: `Cannot ${status.toLowerCase()} an admission that is already ${(admission.status ?? "unknown").toLowerCase()}`,
         code: "INVALID_STATUS_TRANSITION"
       }, { status: 422 });
     }
