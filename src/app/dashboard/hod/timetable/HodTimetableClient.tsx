@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Session } from "next-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Plus, Trash2, Eye, EyeOff, Save, X, AlertCircle, CheckCircle, Grid3X3, Download } from "lucide-react";
+import { Calendar, Plus, Trash2, Eye, EyeOff, Save, X, AlertCircle, CheckCircle, Grid3X3, Download, Sparkles, UserX } from "lucide-react";
+import Link from "next/link";
 import AddableSelect, { SelectOption } from "@/components/ui/AddableSelect";
 
 const CLASSES = ["Class 6","Class 7","Class 8","Class 9","Class 10","Class 11","Class 12"];
@@ -15,8 +16,47 @@ interface Classroom { id:number; name:string; building:string|null; }
 interface Staff { id:number; name:string; assignedClass:string|null; }
 interface Entry { id:number; dayOfWeek:number; slotId:number; subjectId:number|null; staffId:number|null; classroomId:number|null; isPublished:boolean; slot:Slot; subject:Subject|null; classroom:Classroom|null; }
 interface Special { id:number; date:string; title:string; description:string|null; type:string; classEnrolled:string|null; }
+interface LeaveSlotInfo {
+  timetableEntryId: number;
+  slotNumber: number;
+  absentStaffId: number;
+  absentStaffName: string;
+  hasCoverage: boolean;
+  substituteStaffName: string | null;
+  coverageStatus: string;
+}
+interface CoverageStatus {
+  message?: string;
+  uncoveredSlots?: number;
+  status?: string;
+}
+interface HodStaffStatus {
+  id: number;
+  name: string;
+  assignedClass: string | null;
+  isOnLeave?: boolean;
+  substituteName?: string | null;
+}
 
 const TYPE_COLORS: Record<string,string> = { EVENT:"bg-blue-100 text-blue-700", EXAM:"bg-red-100 text-red-700", HOLIDAY:"bg-emerald-100 text-emerald-700", TIMETABLE_CHANGE:"bg-amber-100 text-amber-700" };
+
+function toDateInputValue(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function to12Hour(time24: string) {
+  const [hRaw, mRaw] = time24.split(":");
+  const h = parseInt(hRaw || "0", 10);
+  const m = mRaw || "00";
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = ((h + 11) % 12) + 1;
+  return `${h12}:${m} ${ampm}`;
+}
+
+function getDbDayOfWeek(d: Date) {
+  const day = d.getDay();
+  return day === 0 ? 7 : day;
+}
 
 export default function HodTimetableClient({ session }: { session:Session }) {
   const [cls, setCls] = useState("Class 6");
@@ -24,7 +64,11 @@ export default function HodTimetableClient({ session }: { session:Session }) {
   const [slots, setSlots] = useState<Slot[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [rooms, setRooms] = useState<Classroom[]>([]);
+  const [editRooms, setEditRooms] = useState<Classroom[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [editStaff, setEditStaff] = useState<Staff[]>([]);
+  const [loadingEditStaff, setLoadingEditStaff] = useState(false);
+  const [loadingEditRooms, setLoadingEditRooms] = useState(false);
   const [specials, setSpecials] = useState<Special[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -35,8 +79,23 @@ export default function HodTimetableClient({ session }: { session:Session }) {
   const [spForm, setSpForm] = useState({date:"",title:"",description:"",type:"EVENT",classEnrolled:""});
   const [showSpForm, setShowSpForm] = useState(false);
   const [published, setPublished] = useState(false);
+  const [viewDate, setViewDate] = useState(() => toDateInputValue(new Date()));
+  const [leaveInfo, setLeaveInfo] = useState<LeaveSlotInfo[]>([]);
+  const [coverageStatus, setCoverageStatus] = useState<CoverageStatus | null>(null);
+  const [hodStaff, setHodStaff] = useState<HodStaffStatus[]>([]);
 
   const [exporting, setExporting] = useState(false);
+
+  const viewDateObj = new Date(viewDate + "T12:00:00");
+  const viewDayOfWeek = getDbDayOfWeek(viewDateObj);
+  const today = new Date();
+  const todayDayOfWeek = getDbDayOfWeek(today);
+  const isViewingToday = viewDateObj.toDateString() === today.toDateString();
+  const classTeacher = hodStaff.find((s) => s.assignedClass === cls);
+  const classTeacherLeaveForSelectedDate =
+    classTeacher?.id != null
+      ? leaveInfo.find((l) => l.absentStaffId === classTeacher.id) || null
+      : null;
 
   const downloadPdf = () => {
     setExporting(true);
@@ -46,27 +105,186 @@ export default function HodTimetableClient({ session }: { session:Session }) {
 
   const msg = (m:string, ok=true) => { setToast({msg:m,ok}); setTimeout(()=>setToast(null),3000); };
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
-      const [t,s,r,sf,sp] = await Promise.all([
-        fetch(`/api/timetable?class=${encodeURIComponent(cls)}&section=A`).then(r=>r.json()),
+      const [t,s,r,sf,sp,hod] = await Promise.all([
+        fetch(`/api/timetable?class=${encodeURIComponent(cls)}&section=A&date=${viewDate}`).then(r=>r.json()),
         fetch(`/api/timetable/subjects?class=${encodeURIComponent(cls)}`).then(r=>r.json()),
         fetch(`/api/timetable/classrooms`).then(r=>r.json()),
         fetch(`/api/timetable/staff`).then(r=>r.json()),
         fetch(`/api/timetable/special?month=${new Date().getMonth()+1}&year=${new Date().getFullYear()}&class=${encodeURIComponent(cls)}`).then(r=>r.json()),
+        fetch(`/api/hod/staff`).then(r=>r.json()),
       ]);
       setEntries(t.entries||[]); setSlots(t.slots||[]);
       setSubjects(s.subjects||[]); setRooms(r.classrooms||[]); setStaff(sf.staff||[]); setSpecials(sp.schedules||[]);
       setPublished((t.entries||[]).some((e:Entry)=>e.isPublished));
+      setLeaveInfo(t.leaveInfo || []);
+      setCoverageStatus(t.coverageStatus || null);
+      setHodStaff(Array.isArray(hod) ? hod : []);
     } catch {}
-    setLoading(false);
+    if (!silent) setLoading(false);
+  }, [cls, viewDate]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const fetchAvailableStaff = useCallback(async (day: number, slotId: number) => {
+    const q = new URLSearchParams({
+      dayOfWeek: String(day),
+      slotId: String(slotId),
+      class: cls,
+      section: "A",
+    });
+    const res = await fetch(`/api/timetable/staff?${q}`);
+    const data = await res.json();
+    return (data.staff || []) as Staff[];
   }, [cls]);
 
-  useEffect(()=>{ load(); },[load]);
+  const fetchAvailableRooms = useCallback(async (day: number, slotId: number) => {
+    const q = new URLSearchParams({
+      dayOfWeek: String(day),
+      slotId: String(slotId),
+      class: cls,
+      section: "A",
+    });
+    const res = await fetch(`/api/timetable/classrooms?${q}`);
+    const data = await res.json();
+    return (data.classrooms || []) as Classroom[];
+  }, [cls]);
+
+  useEffect(() => {
+    if (!editCell) {
+      setEditStaff([]);
+      setLoadingEditStaff(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingEditStaff(true);
+    fetchAvailableStaff(editCell.day, editCell.slotId)
+      .then((available) => {
+        if (cancelled) return;
+        setEditStaff(available);
+        setForm((f) => {
+          if (f.staffId && !available.some((s) => String(s.id) === f.staffId)) {
+            return { ...f, staffId: "" };
+          }
+          return f;
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setEditStaff([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingEditStaff(false);
+      });
+    return () => { cancelled = true; };
+  }, [editCell, fetchAvailableStaff]);
+
+  useEffect(() => {
+    if (!editCell) {
+      setEditRooms([]);
+      setLoadingEditRooms(false);
+      return;
+    }
+    let cancelled = false;
+    setLoadingEditRooms(true);
+    fetchAvailableRooms(editCell.day, editCell.slotId)
+      .then((available) => {
+        if (cancelled) return;
+        setEditRooms(available);
+        setForm((f) => {
+          if (f.classroomId && !available.some((r) => String(r.id) === f.classroomId)) {
+            return { ...f, classroomId: "" };
+          }
+          return f;
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setEditRooms([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingEditRooms(false);
+      });
+    return () => { cancelled = true; };
+  }, [editCell, fetchAvailableRooms]);
+
+  useEffect(() => {
+    const interval = setInterval(() => load(true), 30000);
+    const onFocus = () => load(true);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [load]);
+
+  // Re-render Live Now when the clock crosses a period boundary
+  const [, setLiveTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setLiveTick((t) => t + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
 
   const getE = (d:number,s:number) => entries.find(e=>e.dayOfWeek===d&&e.slotId===s);
   const getName = (id:number|null) => staff.find(s=>s.id===id)?.name||"";
+
+  const staffStatusMap = new Map(
+    hodStaff.map((s) => [
+      s.id,
+      { isOnLeave: !!s.isOnLeave, substituteName: s.substituteName || null },
+    ])
+  );
+
+  const leaveByEntryId = new Map(leaveInfo.map((l) => [l.timetableEntryId, l]));
+
+  const isCurrentSlot = (slot: Slot) => {
+    if (slot.isBreak || todayDayOfWeek < 1 || todayDayOfWeek > 6) return false;
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const nowTime = `${hours}:${minutes}`;
+    return nowTime >= slot.startTime && nowTime < slot.endTime;
+  };
+
+  const todayLiveEntries = slots
+    .filter((slot) => !slot.isBreak && isCurrentSlot(slot))
+    .map((slot) => ({ slot, entry: getE(todayDayOfWeek, slot.id) }))
+    .filter((x) => x.entry?.subject);
+
+  const getLiveLeaveState = (entry: Entry | undefined) => {
+    if (!entry?.staffId) return null;
+    if (isViewingToday) {
+      const fromLeaveInfo = leaveByEntryId.get(entry.id);
+      if (fromLeaveInfo) return fromLeaveInfo;
+    }
+    const status = staffStatusMap.get(entry.staffId);
+    if (!status?.isOnLeave && !status?.substituteName) return null;
+    return {
+      absentStaffId: entry.staffId,
+      absentStaffName: getName(entry.staffId),
+      hasCoverage: !!status.substituteName,
+      substituteStaffName: status.substituteName,
+      coverageStatus: status.substituteName ? "COVERED" : "UNCOVERED",
+    };
+  };
+
+  const getCellLeaveState = (entry: Entry | undefined, day: number) => {
+    if (!entry?.staffId) return null;
+    const fromLeaveInfo = leaveByEntryId.get(entry.id);
+    if (fromLeaveInfo) return fromLeaveInfo;
+    // Only use "today" fallback when selected date == today.
+    // For past/future dates, rely ONLY on leaveInfo for the chosen ?date.
+    if (!isViewingToday || day !== viewDayOfWeek) return null;
+    const status = staffStatusMap.get(entry.staffId);
+    if (!status?.isOnLeave && !status?.substituteName) return null;
+    return {
+      absentStaffId: entry.staffId,
+      absentStaffName: getName(entry.staffId),
+      hasCoverage: !!status.substituteName,
+      substituteStaffName: status.substituteName,
+      coverageStatus: status.substituteName ? "COVERED" : "UNCOVERED",
+    };
+  };
 
   const openEdit = (d:number,s:number) => {
     const e=getE(d,s);
@@ -108,8 +326,8 @@ export default function HodTimetableClient({ session }: { session:Session }) {
 
   // AddableSelect options
   const subjectOpts: SelectOption[] = subjects.map(s=>({ value:String(s.id), label:s.name, sub:s.code }));
-  const staffOpts: SelectOption[] = staff.map(s=>({ value:String(s.id), label:s.name, sub:s.assignedClass||"Subject Teacher" }));
-  const roomOpts: SelectOption[] = rooms.map(r=>({ value:String(r.id), label:r.name, sub:r.building||"" }));
+  const staffOpts: SelectOption[] = editStaff.map(s=>({ value:String(s.id), label:s.name, sub:s.assignedClass||"Subject Teacher" }));
+  const roomOpts: SelectOption[] = editRooms.map(r=>({ value:String(r.id), label:r.name, sub:r.building||"" }));
   const subColorDot: Record<string,string> = Object.fromEntries(subjects.map(s=>[String(s.id),s.color]));
 
   const addSubject = async (data: Record<string,string>) => {
@@ -123,14 +341,26 @@ export default function HodTimetableClient({ session }: { session:Session }) {
     if (!data.name||!data.email) throw new Error("Name and email required");
     const r=await fetch("/api/timetable/staff",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:data.name,email:data.email,assignedClass:data.assignedClass||null})});
     const d=await r.json(); if (!r.ok) throw new Error(d.error||"Failed");
-    await load(); msg("Teacher added!");
+    await load();
+    if (editCell) {
+      const available = await fetchAvailableStaff(editCell.day, editCell.slotId);
+      setEditStaff(available);
+      if (d.staff?.id) setForm((f) => ({ ...f, staffId: String(d.staff.id) }));
+    }
+    msg("Teacher added!");
   };
 
   const addRoom = async (data: Record<string,string>) => {
     if (!data.name) throw new Error("Room name required");
     const r=await fetch("/api/timetable/classrooms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:data.name,building:data.building||null,capacity:data.capacity||40})});
     const d=await r.json(); if (!r.ok) throw new Error(d.error||"Failed");
-    await load(); msg("Room added!");
+    await load();
+    if (editCell) {
+      const available = await fetchAvailableRooms(editCell.day, editCell.slotId);
+      setEditRooms(available);
+      if (d.classroom?.id) setForm((f) => ({ ...f, classroomId: String(d.classroom.id) }));
+    }
+    msg("Room added!");
   };
 
   return (
@@ -153,6 +383,13 @@ export default function HodTimetableClient({ session }: { session:Session }) {
           <p className="text-xs text-gray-400 mt-0.5">Click any cell → assign subject, teacher & room</p>
         </div>
         <div className="flex gap-2 items-center flex-wrap">
+          <input
+            type="date"
+            value={viewDate}
+            onChange={(e) => { setViewDate(e.target.value); setEditCell(null); }}
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 text-gray-700"
+            title="View leave & substitute status for this date"
+          />
           <select value={cls} onChange={e=>{setCls(e.target.value);setEditCell(null);}}
             className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 font-medium text-gray-700">
             {CLASSES.map(c=><option key={c}>{c}</option>)}
@@ -182,24 +419,105 @@ export default function HodTimetableClient({ session }: { session:Session }) {
           <div className="h-9 w-9 rounded-full border-4 border-emerald-200 border-t-emerald-500 animate-spin"/>
         </div>
       ) : tab==="tt" ? (
+        <div className="space-y-3">
+          {/* Live now — current lecture for this class (always shown; uses real today, not date picker) */}
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} className="text-emerald-600" />
+                <span className="text-sm font-semibold text-emerald-700">Live Now — {cls}</span>
+                <span className="text-xs text-emerald-500">({DAYS[todayDayOfWeek - 1] || "Today"})</span>
+              </div>
+              {todayDayOfWeek > 6 ? (
+                <p className="text-xs text-gray-500">No classes scheduled on Sunday.</p>
+              ) : todayLiveEntries.length === 0 ? (
+                <p className="text-xs text-gray-500">No class in progress at this time.</p>
+              ) : (
+                <div className="flex gap-2 flex-wrap">
+                  {todayLiveEntries.map(({ slot, entry }) => {
+                    const leave = getLiveLeaveState(entry);
+                    return (
+                      <div
+                        key={slot.id}
+                        className="flex flex-col gap-1 px-3 py-2 rounded-lg text-xs font-medium border border-emerald-400 bg-emerald-500 text-white shadow-sm min-w-[140px]"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                          <span>● Live</span>
+                  <span className="opacity-90">P{slot.slotNumber} · {to12Hour(slot.startTime)}</span>
+                        </div>
+                        <span className="font-bold">{entry!.subject!.name}</span>
+                        <span className="opacity-90">{getName(entry!.staffId)}</span>
+                        {leave?.hasCoverage && leave.substituteStaffName && (
+                          <span className="text-[10px] bg-amber-400/90 text-amber-950 rounded px-1.5 py-0.5 w-fit">
+                            Cover: {leave.substituteStaffName}
+                          </span>
+                        )}
+                        {leave && !leave.hasCoverage && (
+                          <span className="text-[10px] bg-red-500/90 rounded px-1.5 py-0.5 w-fit">Teacher absent — no substitute</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+          </div>
+
+          {/* Class teacher absent banner */}
+          {classTeacherLeaveForSelectedDate && (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="flex items-start gap-2">
+                <UserX size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">
+                    {classTeacher?.name} (Class Teacher) is absent on {viewDateObj.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                  {classTeacherLeaveForSelectedDate?.substituteStaffName ? (
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Substitute from Class Assignments: <strong>{classTeacherLeaveForSelectedDate?.substituteStaffName}</strong>
+                    </p>
+                  ) : (
+                    <p className="text-xs text-red-600 mt-0.5 font-medium">No substitute assigned yet.</p>
+                  )}
+                </div>
+              </div>
+              <Link
+                href="/dashboard/hod/class-assignments"
+                className="text-xs font-semibold text-amber-800 underline hover:text-amber-900 shrink-0"
+              >
+                Manage in Class Assignments →
+              </Link>
+            </div>
+          )}
+
+          {coverageStatus && (coverageStatus.uncoveredSlots ?? 0) > 0 && (
+            <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-800">
+              <AlertCircle size={14} className="shrink-0" />
+              {coverageStatus.message}
+            </div>
+          )}
+
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
           {/* Status */}
-          <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-2 bg-gray-50/60">
+          <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-2 bg-gray-50/60 flex-wrap">
             <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${published?"bg-emerald-100 text-emerald-700":"bg-gray-200 text-gray-500"}`}>
               {published?"● Published":"○ Draft"}
             </span>
-            <span className="text-[10px] text-gray-400">{cls} · Section A · Click any period cell to edit</span>
+            <span className="text-[10px] text-gray-400">{cls} · Section A · {viewDateObj.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })} · Click any period cell to edit</span>
           </div>
 
           {/* Day headers */}
           <div className="grid grid-cols-7 border-b border-gray-100 min-w-[620px]">
             <div className="px-2 py-2 text-[10px] font-bold text-gray-400 text-center border-r border-gray-100">TIME</div>
-            {DAYS.map((day,i)=>(
-              <div key={day} className="px-1 py-2 text-center border-r border-gray-100 last:border-0 bg-gradient-to-b from-emerald-50/60 to-white">
-                <p className="text-[11px] font-bold text-emerald-700">{DAY_SHORT[i]}</p>
+            {DAYS.map((day,i)=>{
+              const dayNum = i + 1;
+              const isViewDay = dayNum === viewDayOfWeek;
+              return (
+              <div key={day} className={`px-1 py-2 text-center border-r border-gray-100 last:border-0 ${isViewDay ? "bg-amber-50/80 ring-1 ring-inset ring-amber-200" : "bg-gradient-to-b from-emerald-50/60 to-white"}`}>
+                <p className={`text-[11px] font-bold ${isViewDay ? "text-amber-800" : "text-emerald-700"}`}>{DAY_SHORT[i]}</p>
                 <p className="text-[9px] text-gray-400">{day.slice(0,3)}</p>
+                {isViewDay && <p className="text-[8px] text-amber-600 font-semibold mt-0.5">Selected date</p>}
               </div>
-            ))}
+            );})}
           </div>
 
           {/* Rows */}
@@ -210,23 +528,35 @@ export default function HodTimetableClient({ session }: { session:Session }) {
                   ? <span className="text-[9px] text-amber-600 font-semibold">{slot.breakLabel}</span>
                   : <>
                       <span className="text-[10px] font-bold text-emerald-600">P{slot.slotNumber}</span>
-                      <span className="text-[9px] text-gray-400">{slot.startTime}</span>
-                      <span className="text-[8px] text-gray-300">–{slot.endTime}</span>
+                      <span className="text-[9px] text-gray-400">{to12Hour(slot.startTime)}</span>
+                      <span className="text-[8px] text-gray-300">–{to12Hour(slot.endTime)}</span>
                     </>
                 }
               </div>
               {DAYS.map((_,i)=>{
                 const day=i+1, entry=getE(day,slot.id), isEd=editCell?.day===day&&editCell?.slotId===slot.id;
+                const leaveState = getCellLeaveState(entry, day);
+                const isLive = day === todayDayOfWeek && isCurrentSlot(slot);
                 if (slot.isBreak) return <div key={i} className="border-r border-gray-100 last:border-0 bg-amber-50/20"/>;
                 return (
                   <div key={i} onClick={()=>!isEd&&openEdit(day,slot.id)}
-                    className={`border-r border-gray-100 last:border-0 p-0.5 min-h-[52px] cursor-pointer transition-all ${isEd?"bg-emerald-50 ring-2 ring-inset ring-emerald-400":"hover:bg-emerald-50/50"}`}>
+                    className={`border-r border-gray-100 last:border-0 p-0.5 min-h-[52px] cursor-pointer transition-all ${isEd?"bg-emerald-50 ring-2 ring-inset ring-emerald-400":isLive?"bg-emerald-50/80 ring-1 ring-inset ring-emerald-300":"hover:bg-emerald-50/50"}`}>
                     {entry?.subject ? (
-                      <div className="h-full rounded-md px-1.5 py-1 relative group"
-                        style={{background:`${entry.subject.color}12`,borderLeft:`2.5px solid ${entry.subject.color}`}}>
+                      <div className={`h-full rounded-md px-1.5 py-1 relative group ${leaveState && day === viewDayOfWeek ? "ring-1 ring-amber-400" : ""}`}
+                        style={{background:`${entry.subject.color}${leaveState && day === viewDayOfWeek ? "20" : "12"}`,borderLeft:`2.5px solid ${leaveState && day === viewDayOfWeek ? "#f59e0b" : entry.subject.color}`}}>
                         <p className="text-[10px] font-bold leading-tight truncate" style={{color:entry.subject.color}}>{entry.subject.name}</p>
-                        <p className="text-[9px] text-gray-500 leading-tight truncate mt-0.5">{getName(entry.staffId)}</p>
+                        <p className={`text-[9px] leading-tight truncate mt-0.5 ${leaveState && day === viewDayOfWeek ? "text-amber-700 line-through" : "text-gray-500"}`}>{getName(entry.staffId)}</p>
+                        {leaveState && day === viewDayOfWeek && (
+                          <p className="text-[8px] font-semibold text-amber-700 truncate">
+                            {leaveState.hasCoverage
+                              ? `↳ Sub: ${leaveState.substituteStaffName}`
+                              : "● Absent — assign sub"}
+                          </p>
+                        )}
                         {entry.classroom&&<p className="text-[8px] text-gray-400 truncate">{entry.classroom.name}</p>}
+                        {isLive && (
+                          <span className="text-[8px] bg-emerald-500 text-white rounded px-1 mt-0.5 inline-block font-bold">● Live</span>
+                        )}
                         <button onClick={e=>{e.stopPropagation();del(entry.id);}}
                           className="absolute top-0.5 right-0.5 hidden group-hover:flex h-3.5 w-3.5 rounded bg-red-100 text-red-400 hover:bg-red-500 hover:text-white items-center justify-center transition-colors">
                           <X size={7}/>
@@ -254,7 +584,7 @@ export default function HodTimetableClient({ session }: { session:Session }) {
                       {editCell.day}
                     </span>
                     <p className="text-xs font-bold text-emerald-700">
-                      {DAYS[editCell.day-1]} · Period {slots.find(s=>s.id===editCell.slotId)?.slotNumber} ({slots.find(s=>s.id===editCell.slotId)?.startTime} – {slots.find(s=>s.id===editCell.slotId)?.endTime})
+                      {DAYS[editCell.day-1]} · Period {slots.find(s=>s.id===editCell.slotId)?.slotNumber} ({to12Hour(slots.find(s=>s.id===editCell.slotId)?.startTime || "00:00")} – {to12Hour(slots.find(s=>s.id===editCell.slotId)?.endTime || "00:00")})
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-3">
@@ -273,9 +603,14 @@ export default function HodTimetableClient({ session }: { session:Session }) {
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Teacher</p>
+                      {loadingEditStaff ? (
+                        <p className="text-xs text-gray-400 py-2">Loading available teachers...</p>
+                      ) : staffOpts.length === 0 ? (
+                        <p className="text-xs text-amber-600 py-2">No teachers free at this time. Clear another class assignment first.</p>
+                      ) : null}
                       <AddableSelect
                         value={form.staffId} onChange={v=>setForm(f=>({...f,staffId:v}))}
-                        options={staffOpts} placeholder="Select Teacher"
+                        options={staffOpts} placeholder={loadingEditStaff ? "Loading..." : "Select Teacher"}
                         onAdd={addStaff} addLabel="+ Add Teacher"
                         addFields={[
                           {key:"name",placeholder:"Full name"},
@@ -286,9 +621,14 @@ export default function HodTimetableClient({ session }: { session:Session }) {
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Room</p>
+                      {loadingEditRooms ? (
+                        <p className="text-xs text-gray-400 py-2">Loading available rooms...</p>
+                      ) : roomOpts.length === 0 ? (
+                        <p className="text-xs text-amber-600 py-2">No rooms free at this time. Choose another room.</p>
+                      ) : null}
                       <AddableSelect
                         value={form.classroomId} onChange={v=>setForm(f=>({...f,classroomId:v}))}
-                        options={roomOpts} placeholder="Select Room"
+                        options={roomOpts} placeholder={loadingEditRooms ? "Loading..." : "Select Room"}
                         onAdd={addRoom} addLabel="+ Add Room"
                         addFields={[
                           {key:"name",placeholder:"Room name (e.g. Room 201)"},
@@ -312,6 +652,7 @@ export default function HodTimetableClient({ session }: { session:Session }) {
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
         </div>
       ) : (
         /* Special Schedules */

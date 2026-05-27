@@ -142,9 +142,13 @@ export default function ClassAssignmentsClient() {
     }
   };
 
-  // Filter staff
+  const unassignedStaff = staff.filter(
+    (s) => s.approvalStatus === "APPROVED" && !s.assignedClass
+  );
+
+  // Filter staff (assigned class teachers only in main grid)
   useEffect(() => {
-    let filtered = staff;
+    let filtered = staff.filter((s) => !!s.assignedClass);
 
     // Filter by status
     if (filterStatus !== "ALL") {
@@ -167,8 +171,12 @@ export default function ClassAssignmentsClient() {
       );
     }
 
-    // Sort by name
-    filtered.sort((a, b) => a.name.localeCompare(b.name));
+    // Sort: on leave first, then name
+    filtered.sort((a, b) => {
+      if (a.isOnLeave && !b.isOnLeave) return -1;
+      if (!a.isOnLeave && b.isOnLeave) return 1;
+      return a.name.localeCompare(b.name);
+    });
 
     setFilteredStaff(filtered);
   }, [staff, searchTerm, filterStatus, filterClass]);
@@ -176,13 +184,31 @@ export default function ClassAssignmentsClient() {
   // Get unique classes
   const classes = Array.from(new Set(staff.filter((s) => s.assignedClass).map((s) => s.assignedClass)));
   
-  // Available substitutes sorted by availability
-  const availableSubstitutes = staff.filter(s => s.approvalStatus === 'APPROVED' && !s.isOnLeave);
-  const sortedAvailableSubstitutes = [...availableSubstitutes].sort((a, b) => {
-    if (a.isFreeRightNow && !b.isFreeRightNow) return -1;
-    if (!a.isFreeRightNow && b.isFreeRightNow) return 1;
-    return a.name.localeCompare(b.name);
-  });
+  // All approved staff — HOD can pick any.
+  // (API still validates availability; this fixes the dropdown not showing everyone.)
+  const substituteCandidates = staff
+    .filter((s) => s.approvalStatus === "APPROVED")
+    .sort((a, b) => {
+      const score = (m: StaffMember) => {
+        if (!m.assignedClass) return 0;
+        if (m.isFreeRightNow) return 1;
+        return 2;
+      };
+      const diff = score(a) - score(b);
+      if (diff !== 0) return diff;
+      return a.name.localeCompare(b.name);
+    });
+
+  const substituteLabel = (sub: StaffMember) => {
+    if (sub.isOnLeave) return `${sub.name} (On Leave)`;
+    if ((sub.pendingLeaveCount ?? 0) > 0) return `${sub.name} (Pending Leave)`;
+    if (!sub.assignedClass) return `${sub.name} (Not Assigned)`;
+    if (sub.isFreeRightNow) return `${sub.name} (Free Now)`;
+    return `${sub.name} (In Class — ${sub.assignedClass})`;
+  };
+
+  const getSubstituteOptions = (absentId: number) =>
+    substituteCandidates.filter((s) => s.id !== absentId);
 
   // Calculate stats
   const stats = {
@@ -271,8 +297,34 @@ export default function ClassAssignmentsClient() {
         </motion.div>
       </motion.div>
 
+      {/* Not assigned staff */}
+      {!loading && unassignedStaff.length > 0 && (
+        <Card
+          title="Not Assigned Staff"
+          subtitle="Approved staff without a class at this time — assign a class from HOD Dashboard"
+          delay={0.05}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {unassignedStaff.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-amber-200 bg-amber-50/50 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 truncate">{member.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                </div>
+                <Badge variant="warning" dot>
+                  Not Assigned
+                </Badge>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* Staff Assignments */}
-      <Card title="Staff Class Assignments" subtitle="View staff members and their assigned classes" delay={0.1}>
+      <Card title="Staff Class Assignments" subtitle="Class teachers — assign substitutes when staff is on approved leave" delay={0.1}>
         <div className="space-y-4">
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-3">
@@ -367,26 +419,22 @@ export default function ClassAssignmentsClient() {
                     </p>
                   </div>
 
-                  {/* Leave & Substitute UI */}
-                  {member.assignedClass && (
-                    <div className={`rounded-lg p-3 mb-3 border ${member.isOnLeave ? 'bg-amber-50 border-amber-100' : 'bg-gray-50 border-gray-200'}`}>
-                      {member.isOnLeave ? (
-                        <div className="flex items-center gap-2 mb-2">
-                          <AlertCircle size={14} className="text-amber-600" />
-                          <span className="text-xs font-semibold text-amber-700">Staff On Leave</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 mb-2">
-                          <Users size={14} className="text-gray-500" />
-                          <span className="text-xs font-semibold text-gray-600">Temporary Cover / Substitute</span>
-                        </div>
-                      )}
-                      
+                  {/* Leave & Substitute — only when on approved leave or already has substitute */}
+                  {member.assignedClass && (member.isOnLeave || member.substituteName) && (
+                    <div className="rounded-lg p-3 mb-3 border bg-amber-50 border-amber-100">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertCircle size={14} className="text-amber-600" />
+                        <span className="text-xs font-semibold text-amber-700">
+                          {member.isOnLeave ? "Staff On Leave" : "Substitute Cover Active"}
+                        </span>
+                      </div>
+
                       {member.substituteName ? (
                         <div className="flex items-center justify-between mt-1">
                           <div>
-                            <p className={`text-xs mb-1 ${member.isOnLeave ? 'text-amber-700/80' : 'text-gray-500'}`}>Substitute Assigned:</p>
-                            <p className={`text-sm font-medium ${member.isOnLeave ? 'text-amber-800' : 'text-gray-700'}`}>{member.substituteName}</p>
+                            <p className="text-xs mb-1 text-amber-700/80">Substitute Assigned:</p>
+                            <p className="text-sm font-medium text-amber-800">{member.substituteName}</p>
+                            <p className="text-[10px] text-amber-600/80 mt-0.5">Shown on Timetable for this class</p>
                           </div>
                           <button
                             onClick={() => handleRemoveSubstitute(member.id)}
@@ -396,31 +444,55 @@ export default function ClassAssignmentsClient() {
                             Remove
                           </button>
                         </div>
-                      ) : (
+                      ) : member.isOnLeave ? (
                         <div className="space-y-2 mt-2">
-                          <select 
-                            className={`w-full text-xs p-2 rounded border bg-white focus:outline-none focus:ring-1 ${member.isOnLeave ? 'border-amber-200 focus:ring-amber-500' : 'border-gray-200 focus:ring-blue-500'}`}
+                          <p className="text-[10px] text-amber-700">
+                            All active staff are listed. Prefer <strong>Not Assigned</strong> or <strong>Free Now</strong>; teachers already in class can still be chosen if needed.
+                          </p>
+                          <select
+                            className="w-full text-xs p-2 rounded border border-amber-200 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                             value={selectedSubstitutes[member.id] || ""}
                             onChange={(e) => setSelectedSubstitutes(prev => ({ ...prev, [member.id]: e.target.value }))}
                           >
                             <option value="">Select Substitute...</option>
-                            {sortedAvailableSubstitutes.filter(s => s.id !== member.id).map(sub => (
-                              <option key={sub.id} value={sub.id}>
-                                {sub.name} {sub.isFreeRightNow ? "(Free Now)" : ""}
-                              </option>
-                            ))}
+                            {getSubstituteOptions(member.id)
+                              .filter((s) => !s.isOnLeave && (s.pendingLeaveCount ?? 0) === 0 && (!s.assignedClass || s.isFreeRightNow))
+                              .length > 0 && (
+                              <optgroup label="Recommended — Not Assigned / Free Now">
+                                {getSubstituteOptions(member.id)
+                                  .filter((s) => !s.isOnLeave && (s.pendingLeaveCount ?? 0) === 0 && (!s.assignedClass || s.isFreeRightNow))
+                                  .map((sub) => (
+                                    <option key={sub.id} value={sub.id}>
+                                      {substituteLabel(sub)}
+                                    </option>
+                                  ))}
+                              </optgroup>
+                            )}
+                            {getSubstituteOptions(member.id)
+                              .filter((s) => s.isOnLeave || (s.pendingLeaveCount ?? 0) > 0 || !s.isFreeRightNow)
+                              .length > 0 && (
+                              <optgroup label="Other — currently teaching a class">
+                                {getSubstituteOptions(member.id)
+                                  .filter((s) => s.isOnLeave || (s.pendingLeaveCount ?? 0) > 0 || !s.isFreeRightNow)
+                                  .map((sub) => (
+                                    <option key={sub.id} value={sub.id}>
+                                      {substituteLabel(sub)}
+                                    </option>
+                                  ))}
+                              </optgroup>
+                            )}
                           </select>
                           <button
                             onClick={() => handleAssignSubstitute(member.id, member.assignedClass!)}
                             disabled={assigningSubId === member.id || !selectedSubstitutes[member.id]}
-                            className={`w-full py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors font-medium flex items-center justify-center gap-1 ${member.isOnLeave ? 'bg-amber-600 hover:bg-amber-700' : 'bg-gray-800 hover:bg-gray-900'}`}
+                            className="w-full py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors font-medium flex items-center justify-center gap-1 bg-amber-600 hover:bg-amber-700"
                           >
                             {assigningSubId === member.id ? (
                                <div className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
                             ) : "Assign Substitute"}
                           </button>
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   )}
 

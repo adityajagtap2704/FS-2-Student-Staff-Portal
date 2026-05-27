@@ -57,13 +57,22 @@ export async function POST(req: Request) {
     }
 
     // Save assignment
-    const assignment = await db.substituteAssignment.create({
-      data: {
-        absentStaffId,
-        substituteStaffId,
-        classEnrolled,
-      },
+    const existing = await db.substituteAssignment.findFirst({
+      where: { absentStaffId, classEnrolled },
     });
+
+    const assignment = existing
+      ? await db.substituteAssignment.update({
+          where: { id: existing.id },
+          data: { substituteStaffId },
+        })
+      : await db.substituteAssignment.create({
+          data: {
+            absentStaffId,
+            substituteStaffId,
+            classEnrolled,
+          },
+        });
 
     return NextResponse.json({ message: "Substitute assigned successfully", assignment });
   } catch (error) {
