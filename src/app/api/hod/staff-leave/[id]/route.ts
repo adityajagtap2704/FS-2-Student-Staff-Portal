@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { checkLeaveCoverage } from "@/lib/timetableCoverageHelper";
 
 // PATCH — HOD approves or rejects a staff leave request
 export async function PATCH(
@@ -25,7 +26,7 @@ export async function PATCH(
 
     const leave = await db.leaveRequest.findUnique({
       where: { id },
-      include: { staff: { select: { name: true } } },
+      include: { staff: { select: { name: true, id: true } } },
     });
 
     if (!leave || !leave.staffId) {
@@ -34,10 +35,34 @@ export async function PATCH(
 
     const updated = await db.leaveRequest.update({
       where: { id },
-      data:  { status },
+      data:  { 
+        status,
+        approvedBy: status === "APPROVED" ? parseInt(user.id) : null,
+        approvedAt: status === "APPROVED" ? new Date() : null,
+        rejectionReason: status === "REJECTED" ? rejectionReason : null,
+      },
     });
 
-    return NextResponse.json(updated);
+    // If approved, check coverage and return coverage information
+    let coverageInfo = null;
+    if (status === "APPROVED" && leave.staffId) {
+      coverageInfo = await checkLeaveCoverage(
+        leave.staffId,
+        leave.fromDate,
+        leave.toDate,
+        "2025-26"
+      );
+    }
+
+    return NextResponse.json({
+      ...updated,
+      coverageInfo,
+      actionRequired:
+        status === "APPROVED" && (coverageInfo?.uncoveredSlots?.length ?? 0) > 0 ? true : false,
+      message: status === "APPROVED" 
+        ? `Leave approved for ${leave.staff?.name}. Coverage status: ${coverageInfo?.coverageStatus}. ${coverageInfo?.uncoveredSlots?.length || 0} slots need substitute assignment.`
+        : `Leave rejected for ${leave.staff?.name}`,
+    });
   } catch (error) {
     console.error("HOD Staff Leave PATCH Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import db from "@/lib/db";
+import { getLeaveAffectedStaffForDate, getDayOfWeek } from "@/lib/timetableCoverageHelper";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,6 +15,7 @@ export async function GET(req: NextRequest) {
     const classEnrolled = searchParams.get("class");
     const section = searchParams.get("section") || "A";
     const staffId = searchParams.get("staffId");
+    const viewDate = searchParams.get("date"); // Format: YYYY-MM-DD
     const academicYear = searchParams.get("year");
 
     const user = session.user as any;
@@ -24,7 +28,7 @@ export async function GET(req: NextRequest) {
 
     if (user.role === "STUDENT") {
       const student = await db.student.findUnique({ where: { id: parseInt(user.id) } });
-      if (!student?.classEnrolled) return NextResponse.json({ entries: [], slots: [] });
+      if (!student?.classEnrolled) return NextResponse.json({ entries: [], slots: [], leaveInfo: [] });
       whereClause.classEnrolled = student.classEnrolled;
       whereClause.isPublished = true;
     } else if (classEnrolled) {
@@ -50,7 +54,48 @@ export async function GET(req: NextRequest) {
       db.staff.findMany({ select: { id: true, name: true, assignedClass: true }, orderBy: { name: "asc" } }),
     ]);
 
-    return NextResponse.json({ entries, slots, subjects, classrooms, staff });
+    // CONFLICT 2 FIX: Get coverage information if HOD is viewing a class timetable on a specific date
+    let leaveInfo: any = [];
+    let coverageStatus: any = null;
+
+    if (user.role === "HOD" && classEnrolled && viewDate) {
+      try {
+        // Parse YYYY-MM-DD safely (avoid UTC->local day shift)
+        const date = new Date(viewDate + "T12:00:00");
+        leaveInfo = await getLeaveAffectedStaffForDate(classEnrolled, date, academicYear || "2025-26");
+        
+        // Calculate coverage status
+        const totalAffected = leaveInfo.length;
+        const coveredCount = leaveInfo.filter((item: any) => item.hasCoverage).length;
+        const uncoveredCount = totalAffected - coveredCount;
+
+        coverageStatus = {
+          date: viewDate,
+          totalAffectedSlots: totalAffected,
+          coveredSlots: coveredCount,
+          uncoveredSlots: uncoveredCount,
+          status: uncoveredCount === 0 ? "FULLY_COVERED" : uncoveredCount > 0 && coveredCount > 0 ? "PARTIALLY_COVERED" : totalAffected > 0 ? "NEEDS_ATTENTION" : "NO_LEAVES",
+          message: uncoveredCount > 0 ? `⚠️ ${uncoveredCount} slot(s) need substitute assignment` : totalAffected > 0 ? "✓ All slots have coverage" : "No staff on leave",
+        };
+      } catch (error) {
+        console.error("Error fetching leave info:", error);
+      }
+    }
+
+    return NextResponse.json({ 
+      entries, 
+      slots, 
+      subjects, 
+      classrooms, 
+      staff,
+      // CONFLICT 2 FIX: Include coverage information for HOD timetable view
+      leaveInfo,
+      coverageStatus,
+      conflictInfo: {
+        message: "Coverage information is shown in the timetable when a specific date is provided",
+        howToUse: "HOD can view coverage by adding ?date=YYYY-MM-DD parameter",
+      },
+    });
   } catch (err: any) {
     console.error("GET /api/timetable error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
@@ -74,6 +119,43 @@ export async function POST(req: NextRequest) {
     // Use provided academicYear or default to "2025-26"
     const year = academicYear || "2025-26";
 
+    // CONFLICT 1 FIX: Check if assigned staff is on leave for this slot
+    let staffLeaveWarning = null;
+    if (staffId) {
+      const slot = await db.timetableSlot.findUnique({
+        where: { id: slotId },
+      });
+
+      if (slot) {
+        // Check for active leaves for this staff on this day of week
+        const staffLeaves = await db.leaveRequest.findMany({
+          where: {
+            staffId,
+            status: "APPROVED",
+          },
+        });
+
+        for (const leave of staffLeaves) {
+          // Check if this day of week falls within the leave period
+          let currentDate = new Date(leave.fromDate);
+          while (currentDate <= leave.toDate) {
+            const currentDayOfWeek = getDayOfWeek(currentDate);
+            if (currentDayOfWeek === dayOfWeek) {
+              staffLeaveWarning = {
+                warning: `This staff member is on approved leave during this slot's day of week`,
+                staffId,
+                leaveFromDate: leave.fromDate,
+                leaveToDate: leave.toDate,
+              };
+              break;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+          }
+          if (staffLeaveWarning) break;
+        }
+      }
+    }
+
     // Conflict detection: same teacher, same slot, same day
     if (staffId) {
       const teacherConflict = await db.timetableEntry.findFirst({
@@ -82,6 +164,7 @@ export async function POST(req: NextRequest) {
       if (teacherConflict) {
         return NextResponse.json({
           error: `Teacher conflict: This teacher is already assigned to ${teacherConflict.classEnrolled} at this time.`,
+          conflictType: "TEACHER_TIME_CONFLICT",
         }, { status: 409 });
       }
     }
@@ -94,6 +177,7 @@ export async function POST(req: NextRequest) {
       if (roomConflict) {
         return NextResponse.json({
           error: `Room conflict: This classroom is already booked for ${roomConflict.classEnrolled} at this time.`,
+          conflictType: "CLASSROOM_CONFLICT",
         }, { status: 409 });
       }
     }
@@ -117,7 +201,13 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ entry });
+    const response: any = { entry };
+    if (staffLeaveWarning) {
+      response.staffLeaveWarning = staffLeaveWarning;
+      response.message = "Entry created, but staff member has an approved leave during this day. Please review substitute assignment.";
+    }
+
+    return NextResponse.json(response);
   } catch (err: any) {
     console.error("POST /api/timetable error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

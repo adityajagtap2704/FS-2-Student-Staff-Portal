@@ -105,21 +105,29 @@ export async function GET(req: Request) {
 
         const isOnLeave = !!activeLeave;
 
-        // Check if there is an active substitute assignment for this staff's class
+        // Substitute should apply only while the staff is on approved leave (today).
+        // Once leave ends, auto-clear any substitute assignments for this absent staff.
         let substituteId = null;
         let substituteName = null;
 
         if (s.assignedClass) {
-          // Find the most recent substitute assignment for this staff member
-          const subAssignment = await db.substituteAssignment.findFirst({
-            where: { absentStaffId: s.id },
-            orderBy: { assignedAt: 'desc' },
-            include: { substituteStaff: true }
-          });
-          
-          if (subAssignment) {
-            substituteId = subAssignment.substituteStaffId;
-            substituteName = subAssignment.substituteStaff.name;
+          if (isOnLeave) {
+            // Find the most recent substitute assignment for this staff member
+            const subAssignment = await db.substituteAssignment.findFirst({
+              where: { absentStaffId: s.id },
+              orderBy: { assignedAt: "desc" },
+              include: { substituteStaff: true },
+            });
+
+            if (subAssignment) {
+              substituteId = subAssignment.substituteStaffId;
+              substituteName = subAssignment.substituteStaff.name;
+            }
+          } else {
+            // Leave is over → revert to original teacher automatically
+            await db.substituteAssignment.deleteMany({
+              where: { absentStaffId: s.id },
+            });
           }
         }
 
