@@ -34,6 +34,9 @@ export async function GET(req: Request) {
     // Add approval status based on isActive
     // PENDING = not active, APPROVED = active
     
+    const { searchParams } = new URL(req.url);
+    const dateStr = searchParams.get("date"); // YYYY-MM-DD
+
     // 1. Calculate current time and day to determine busy staff
     const now = new Date();
     // Use local time HH:mm
@@ -87,26 +90,27 @@ export async function GET(req: Request) {
           },
         });
 
-        // Determine if staff is currently on leave (absent today)
-        // Only APPROVED leaves where today falls within fromDate–toDate count as absent
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // normalize to start of day
-        const todayEnd = new Date(today);
-        todayEnd.setHours(23, 59, 59, 999);
+        // Determine if staff is on leave for selected date (defaults to today)
+        const target = dateStr ? new Date(dateStr + "T12:00:00") : new Date();
+        const dayStart = new Date(target);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(target);
+        dayEnd.setHours(23, 59, 59, 999);
 
         const activeLeave = await db.leaveRequest.findFirst({
           where: {
             staffId: s.id,
             status: "APPROVED",
-            fromDate: { lte: todayEnd },
-            toDate:   { gte: today },
+            fromDate: { lte: dayEnd },
+            toDate:   { gte: dayStart },
           },
         });
 
         const isOnLeave = !!activeLeave;
+        const leaveId = activeLeave?.id ?? null;
 
         // Substitute should apply only while the staff is on approved leave (today).
-        // Once leave ends, auto-clear any substitute assignments for this absent staff.
+        // NOTE: Do NOT auto-delete substitute assignments, because HOD may assign substitutes for future leave dates (e.g. tomorrow).
         let substituteId = null;
         let substituteName = null;
 
@@ -114,7 +118,7 @@ export async function GET(req: Request) {
           if (isOnLeave) {
             // Find the most recent substitute assignment for this staff member
             const subAssignment = await db.substituteAssignment.findFirst({
-              where: { absentStaffId: s.id },
+              where: { absentStaffId: s.id, leaveId },
               orderBy: { assignedAt: "desc" },
               include: { substituteStaff: true },
             });
@@ -123,11 +127,6 @@ export async function GET(req: Request) {
               substituteId = subAssignment.substituteStaffId;
               substituteName = subAssignment.substituteStaff.name;
             }
-          } else {
-            // Leave is over → revert to original teacher automatically
-            await db.substituteAssignment.deleteMany({
-              where: { absentStaffId: s.id },
-            });
           }
         }
 
@@ -140,6 +139,7 @@ export async function GET(req: Request) {
           studentCount,
           pendingLeaveCount,
           isOnLeave,
+          leaveId,
           substituteId,
           substituteName,
           isFreeRightNow,
