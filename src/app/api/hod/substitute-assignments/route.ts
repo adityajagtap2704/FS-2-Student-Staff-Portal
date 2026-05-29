@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import db from "@/lib/db";
+import { isSubstituteAvailable } from "@/lib/timetableCoverageHelper";
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { absentStaffId, substituteStaffId, classEnrolled } = await req.json();
+    const { absentStaffId, substituteStaffId, classEnrolled, leaveId } = await req.json();
 
     if (!absentStaffId || !substituteStaffId || !classEnrolled) {
       return NextResponse.json(
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Verify substitute is not also on leave
+    // Verify substitute is not also on leave (for the relevant leave date, if provided)
     const pendingLeaveCount = await db.leaveRequest.count({
       where: {
         staffId: substituteStaffId,
@@ -39,15 +40,27 @@ export async function POST(req: Request) {
       },
     });
 
-    const today = new Date();
-    const activeLeave = await db.leaveRequest.findFirst({
-      where: {
-        staffId: substituteStaffId,
-        status: "APPROVED",
-        fromDate: { lte: today },
-        toDate: { gte: today },
-      },
-    });
+    let activeLeave = null;
+    if (leaveId) {
+      const leave = await db.leaveRequest.findUnique({ where: { id: leaveId } });
+      if (!leave) {
+        return NextResponse.json({ error: "Leave request not found" }, { status: 404 });
+      }
+      const ok = await isSubstituteAvailable(substituteStaffId, leave.fromDate);
+      if (!ok) {
+        return NextResponse.json({ error: "Selected substitute is not available for the leave date" }, { status: 400 });
+      }
+    } else {
+      const today = new Date();
+      activeLeave = await db.leaveRequest.findFirst({
+        where: {
+          staffId: substituteStaffId,
+          status: "APPROVED",
+          fromDate: { lte: today },
+          toDate: { gte: today },
+        },
+      });
+    }
 
     if (pendingLeaveCount > 0 || activeLeave) {
       return NextResponse.json(
@@ -58,21 +71,65 @@ export async function POST(req: Request) {
 
     // Save assignment
     const existing = await db.substituteAssignment.findFirst({
-      where: { absentStaffId, classEnrolled },
+      where: { absentStaffId, classEnrolled, leaveId: leaveId || null },
     });
 
     const assignment = existing
       ? await db.substituteAssignment.update({
           where: { id: existing.id },
-          data: { substituteStaffId },
+          data: { substituteStaffId, leaveId: leaveId || null },
         })
       : await db.substituteAssignment.create({
           data: {
             absentStaffId,
             substituteStaffId,
             classEnrolled,
+            leaveId: leaveId || null,
           },
         });
+
+    // Bell notifications (substitute staff + students in class) when assigning for a leave
+    try {
+      const leave = leaveId ? await db.leaveRequest.findUnique({
+        where: { id: leaveId },
+        include: { staff: { select: { name: true } } },
+      }) : null;
+
+      const absentName = leave?.staff?.name || "Teacher";
+      const sub = await db.staff.findUnique({ where: { id: substituteStaffId }, select: { name: true } });
+      const subName = sub?.name || "Substitute";
+
+      const when =
+        leave?.fromDate && leave?.toDate
+          ? `${new Date(leave.fromDate).toLocaleDateString("en-IN")} to ${new Date(leave.toDate).toLocaleDateString("en-IN")}`
+          : "the selected date";
+
+      await db.notification.create({
+        data: {
+          staffId: substituteStaffId,
+          type: "GENERAL",
+          title: "Substitute assigned",
+          message: `You are assigned as substitute for ${absentName} (${classEnrolled}) for ${when}.`,
+        } as any,
+      });
+
+      const students = await db.student.findMany({
+        where: { classEnrolled, isActive: true },
+        select: { id: true },
+      });
+      if (students.length > 0) {
+        await db.notification.createMany({
+          data: students.map((s) => ({
+            studentId: s.id,
+            type: "GENERAL" as const,
+            title: "Substitute teacher assigned",
+            message: `${subName} will take classes for ${classEnrolled} (${when}). Please check timetable.`,
+          })),
+        });
+      }
+    } catch (e) {
+      console.error("Failed to create substitute notifications:", e);
+    }
 
     return NextResponse.json({ message: "Substitute assigned successfully", assignment });
   } catch (error) {
@@ -97,6 +154,7 @@ export async function DELETE(req: Request) {
 
     const { searchParams } = new URL(req.url);
     const absentStaffId = searchParams.get('absentStaffId');
+    const leaveId = searchParams.get('leaveId');
 
     if (!absentStaffId) {
       return NextResponse.json(
@@ -108,7 +166,8 @@ export async function DELETE(req: Request) {
     // Delete all substitute assignments for this staff member
     await db.substituteAssignment.deleteMany({
       where: {
-        absentStaffId: parseInt(absentStaffId)
+        absentStaffId: parseInt(absentStaffId),
+        ...(leaveId ? { leaveId: parseInt(leaveId) } : {}),
       }
     });
 

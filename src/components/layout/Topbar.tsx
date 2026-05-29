@@ -29,7 +29,7 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
 
   const user = session?.user as any;
   const role = user?.role ?? "STUDENT";
-  const isStudent = role === "STUDENT" || !user?.role;
+  const canUseNotifications = !!session?.user;
 
   const searchItems = useMemo(() => {
     const allItems = [
@@ -138,9 +138,9 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
     return () => el.removeEventListener("scroll", handler);
   }, []);
 
-  // Fetch notifications for students — poll every 30 seconds so new ones appear without a page reload
+  // Fetch notifications for current user (student or staff) — poll so new ones appear without reload
   useEffect(() => {
-    if (!isStudent) return;
+    if (!canUseNotifications) return;
 
     const fetchNotifications = () => {
       fetch("/api/notifications")
@@ -156,11 +156,28 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
 
     const interval = setInterval(fetchNotifications, 10_000); // poll every 10 s
     return () => clearInterval(interval);
-  }, [isStudent]);
+  }, [canUseNotifications]);
 
   const handleSignOut = async () => {
     setSigningOut(true);
     await signOut({ callbackUrl: "/login" });
+  };
+
+  const handleNotificationClick = async (n: { id: number; isRead: boolean; title?: string }) => {
+    if (!n.isRead) {
+      await fetch(`/api/notifications/${n.id}`, { method: "PATCH" }).catch(() => {});
+      setNotifications((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x))
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+    const titleLower = (n.title || "").toLowerCase();
+    if (titleLower.includes("timetable")) {
+      setShowNotif(false);
+      if (role === "HOD") router.push("/dashboard/hod/timetable");
+      else if (role === "CLASS_TEACHER") router.push("/dashboard/staff/timetable");
+      else if (role === "STUDENT" || !user?.role) router.push("/dashboard/timetable");
+    }
   };
 
   const handleDeleteNotification = async (id: number) => {
@@ -310,8 +327,7 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
             aria-label="Notifications"
           >
             <Bell size={17} />
-            {/* Fix #13 — real unread badge, only for students */}
-            {isStudent && unreadCount > 0 && (
+            {unreadCount > 0 && (
               <motion.span
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
@@ -319,12 +335,6 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
               >
                 {unreadCount > 9 ? "9+" : unreadCount}
               </motion.span>
-            )}
-            {/* Pulse dot for staff/HOD (no real count) */}
-            {!isStudent && (
-              <motion.span
-                className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-gray-300 ring-2 ring-white"
-              />
             )}
           </motion.button>
 
@@ -365,7 +375,8 @@ export default function Topbar({ session, onMenuClick, title }: TopbarProps) {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 8 }}
                         transition={{ delay: i * 0.05 }}
-                        className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group ${!n.isRead ? "bg-primary-50/30" : ""}`}
+                        onClick={() => handleNotificationClick(n)}
+                        className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 transition-colors group cursor-pointer ${!n.isRead ? "bg-primary-50/30" : ""}`}
                       >
                         <div className={`h-2 w-2 rounded-full mt-1.5 shrink-0 ${!n.isRead ? "bg-primary" : "bg-gray-200"}`} />
                         <div className="flex-1 min-w-0">

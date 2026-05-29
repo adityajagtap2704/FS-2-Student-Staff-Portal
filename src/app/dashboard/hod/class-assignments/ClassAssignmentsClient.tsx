@@ -20,6 +20,7 @@ interface StaffMember {
   studentCount: number;
   pendingLeaveCount: number;
   isOnLeave?: boolean;
+  leaveId?: number | null;
   substituteId?: number | null;
   substituteName?: string | null;
   isFreeRightNow?: boolean;
@@ -32,6 +33,7 @@ export default function ClassAssignmentsClient() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "APPROVED" | "PENDING">("ALL");
   const [filterClass, setFilterClass] = useState<"ALL" | string>("ALL");
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedSubstitutes, setSelectedSubstitutes] = useState<Record<number, string>>({});
   const [assigningSubId, setAssigningSubId] = useState<number | null>(null);
   const { error: showError, success: showSuccess } = useToast();
@@ -41,7 +43,7 @@ export default function ClassAssignmentsClient() {
     const fetchStaff = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/hod/staff");
+        const response = await fetch(`/api/hod/staff?date=${selectedDate}`);
 
         if (!response.ok) {
           throw new Error("Failed to fetch staff");
@@ -58,9 +60,9 @@ export default function ClassAssignmentsClient() {
     };
 
     fetchStaff();
-  }, [showError]);
+  }, [showError, selectedDate]);
 
-  const handleAssignSubstitute = async (absentStaffId: number, classEnrolled: string) => {
+  const handleAssignSubstitute = async (absentStaffId: number, classEnrolled: string, leaveId?: number | null) => {
     const substituteStaffId = selectedSubstitutes[absentStaffId];
     if (!substituteStaffId) {
       showError("Please select a substitute staff member");
@@ -78,6 +80,7 @@ export default function ClassAssignmentsClient() {
           absentStaffId,
           substituteStaffId: parseInt(substituteStaffId),
           classEnrolled,
+          leaveId: leaveId || null,
         }),
       });
 
@@ -110,10 +113,12 @@ export default function ClassAssignmentsClient() {
     }
   };
 
-  const handleRemoveSubstitute = async (absentStaffId: number) => {
+  const handleRemoveSubstitute = async (absentStaffId: number, leaveId?: number | null) => {
     try {
       setAssigningSubId(absentStaffId);
-      const res = await fetch(`/api/hod/substitute-assignments?absentStaffId=${absentStaffId}`, {
+      const qs = new URLSearchParams({ absentStaffId: String(absentStaffId) });
+      if (leaveId) qs.set("leaveId", String(leaveId));
+      const res = await fetch(`/api/hod/substitute-assignments?${qs.toString()}`, {
         method: "DELETE",
       });
 
@@ -184,10 +189,12 @@ export default function ClassAssignmentsClient() {
   // Get unique classes
   const classes = Array.from(new Set(staff.filter((s) => s.assignedClass).map((s) => s.assignedClass)));
   
-  // All approved staff — HOD can pick any.
-  // (API still validates availability; this fixes the dropdown not showing everyone.)
+  // Available substitute candidates for selected date:
+  // - Approved
+  // - Not on leave on that date
+  // - No pending leave
   const substituteCandidates = staff
-    .filter((s) => s.approvalStatus === "APPROVED")
+    .filter((s) => s.approvalStatus === "APPROVED" && !s.isOnLeave && (s.pendingLeaveCount ?? 0) === 0)
     .sort((a, b) => {
       const score = (m: StaffMember) => {
         if (!m.assignedClass) return 0;
@@ -200,8 +207,6 @@ export default function ClassAssignmentsClient() {
     });
 
   const substituteLabel = (sub: StaffMember) => {
-    if (sub.isOnLeave) return `${sub.name} (On Leave)`;
-    if ((sub.pendingLeaveCount ?? 0) > 0) return `${sub.name} (Pending Leave)`;
     if (!sub.assignedClass) return `${sub.name} (Not Assigned)`;
     if (sub.isFreeRightNow) return `${sub.name} (Free Now)`;
     return `${sub.name} (In Class — ${sub.assignedClass})`;
@@ -328,6 +333,17 @@ export default function ClassAssignmentsClient() {
         <div className="space-y-4">
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-3">
+            {/* Date selector for leave/substitute assignment */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Date</span>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all bg-white"
+                title="Pick date to assign substitutes for leave"
+              />
+            </div>
             {/* Search */}
             <div className="flex-1 relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -437,7 +453,7 @@ export default function ClassAssignmentsClient() {
                             <p className="text-[10px] text-amber-600/80 mt-0.5">Shown on Timetable for this class</p>
                           </div>
                           <button
-                            onClick={() => handleRemoveSubstitute(member.id)}
+                            onClick={() => handleRemoveSubstitute(member.id, member.leaveId)}
                             disabled={assigningSubId === member.id}
                             className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 rounded transition-colors"
                           >
@@ -483,7 +499,7 @@ export default function ClassAssignmentsClient() {
                             )}
                           </select>
                           <button
-                            onClick={() => handleAssignSubstitute(member.id, member.assignedClass!)}
+                            onClick={() => handleAssignSubstitute(member.id, member.assignedClass!, member.leaveId)}
                             disabled={assigningSubId === member.id || !selectedSubstitutes[member.id]}
                             className="w-full py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors font-medium flex items-center justify-center gap-1 bg-amber-600 hover:bg-amber-700"
                           >

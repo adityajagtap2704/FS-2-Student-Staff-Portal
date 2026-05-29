@@ -197,6 +197,8 @@ export async function getLeaveAffectedStaffForDate(
         where: {
           absentStaffId: leave.staffId,
           classEnrolled,
+          // tie substitute to this leave request so future assignments don't override others
+          leaveId: leave.id,
         },
         include: {
           substituteStaff: true,
