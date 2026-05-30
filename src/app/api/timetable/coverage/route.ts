@@ -201,6 +201,7 @@ export async function POST(req: NextRequest) {
       where: {
         absentStaffId,
         classEnrolled,
+        leaveId: leaveId || null,
       },
     });
 
@@ -208,7 +209,7 @@ export async function POST(req: NextRequest) {
     if (existing) {
       assignment = await db.substituteAssignment.update({
         where: { id: existing.id },
-        data: { substituteStaffId },
+        data: { substituteStaffId, leaveId: leaveId || null },
         include: {
           substituteStaff: true,
           absentStaff: true,
@@ -220,6 +221,7 @@ export async function POST(req: NextRequest) {
           absentStaffId,
           substituteStaffId,
           classEnrolled,
+          leaveId: leaveId || null,
         },
         include: {
           substituteStaff: true,

@@ -213,7 +213,8 @@ CREATE TABLE leave_requests (
 -- ============================================================================
 CREATE TABLE notifications (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  studentId INT NOT NULL,
+  studentId INT NULL,
+  staffId INT NULL,
   type ENUM('LEAVE_APPROVED','LEAVE_REJECTED','ADMISSION_APPROVED','ADMISSION_REJECTED','BONAFIDE_APPROVED','BONAFIDE_REJECTED','GENERAL') NOT NULL,
   title VARCHAR(191) NOT NULL,
   message TEXT NOT NULL,
@@ -221,8 +222,10 @@ CREATE TABLE notifications (
   readAt DATETIME,
   createdAt DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
   KEY idx_notifications_studentId (studentId),
+  KEY idx_notifications_staffId (staffId),
   KEY idx_notifications_isRead (isRead),
-  FOREIGN KEY (studentId) REFERENCES students(id) ON DELETE CASCADE
+  FOREIGN KEY (studentId) REFERENCES students(id) ON DELETE CASCADE,
+  FOREIGN KEY (staffId) REFERENCES staff(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================================

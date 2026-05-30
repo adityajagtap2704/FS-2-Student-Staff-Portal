@@ -24,6 +24,8 @@ interface LeaveSlotInfo {
   hasCoverage: boolean;
   substituteStaffName: string | null;
   coverageStatus: string;
+  leaveFromDate?: Date | string;
+  leaveToDate?: Date | string;
 }
 interface CoverageStatus {
   message?: string;
@@ -94,7 +96,16 @@ export default function HodTimetableClient({ session }: { session:Session }) {
   const classTeacher = hodStaff.find((s) => s.assignedClass === cls);
   const classTeacherLeaveForSelectedDate =
     classTeacher?.id != null
-      ? leaveInfo.find((l) => l.absentStaffId === classTeacher.id) || null
+      ? leaveInfo.find((l) => {
+          if (l.absentStaffId !== classTeacher.id) return false;
+          if (!l.leaveFromDate || !l.leaveToDate) return false;
+          // Validate that the selected date falls within the leave date range
+          const leaveStart = new Date(l.leaveFromDate);
+          leaveStart.setHours(0, 0, 0, 0);
+          const leaveEnd = new Date(l.leaveToDate);
+          leaveEnd.setHours(23, 59, 59, 999);
+          return viewDateObj >= leaveStart && viewDateObj <= leaveEnd;
+        }) || null
       : null;
 
   const downloadPdf = () => {
@@ -296,7 +307,12 @@ export default function HodTimetableClient({ session }: { session:Session }) {
     if (!editCell) return; setSaving(true);
     const res = await fetch("/api/timetable",{ method:"POST", headers:{"Content-Type":"application/json"},
       body:JSON.stringify({ classEnrolled:cls, section:"A", dayOfWeek:editCell.day, slotId:editCell.slotId,
-        subjectId:form.subjectId?+form.subjectId:null, staffId:form.staffId?+form.staffId:null, classroomId:form.classroomId?+form.classroomId:null }) });
+        subjectId:form.subjectId?+form.subjectId:null,
+        staffId:form.staffId?+form.staffId:null,
+        classroomId:form.classroomId?+form.classroomId:null,
+        // If timetable is already published, keep new edits published for students
+        isPublished: published,
+      }) });
     const d=await res.json();
     if (!res.ok) msg(d.error||"Failed",false); else { msg("Saved!"); setEditCell(null); load(); }
     setSaving(false);

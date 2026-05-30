@@ -66,6 +66,8 @@ model Staff {
   absentAssignments     SubstituteAssignment[] @relation("AbsentStaff")
   substituteAssignments SubstituteAssignment[] @relation("SubstituteStaff")
   timetable_entries     TimetableEntry[]
+  notifications         Notification[]
+  notes                 Note[]
 
   @@index([approvedBy], map: "idx_staff_approvedBy")
   @@index([email], map: "idx_staff_email")
@@ -212,6 +214,7 @@ model LeaveRequest {
   submittedAt     DateTime?           @default(now())
   student         Student?            @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "leave_requests_ibfk_1")
   staff           Staff?              @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "leave_requests_ibfk_2")
+  substituteAssignments SubstituteAssignment[]
 
   @@index([staffId], map: "idx_leave_requests_staffId")
   @@index([status], map: "idx_leave_requests_status")
@@ -221,17 +224,20 @@ model LeaveRequest {
 
 model Notification {
   id        Int                @id @default(autoincrement())
-  studentId Int
+  studentId Int?
+  staffId   Int?
   type      notifications_type
   title     String
   message   String             @db.Text
   isRead    Boolean?           @default(false)
   readAt    DateTime?          @db.DateTime(0)
   createdAt DateTime?          @default(now())
-  student   Student            @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "notifications_ibfk_1")
+  student   Student?           @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "notifications_ibfk_1")
+  staff     Staff?             @relation(fields: [staffId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "notifications_ibfk_2")
 
   @@index([isRead], map: "idx_notifications_isRead")
   @@index([studentId], map: "idx_notifications_studentId")
+  @@index([staffId], map: "idx_notifications_staffId")
   @@map("notifications")
 }
 
@@ -504,12 +510,15 @@ model SubstituteAssignment {
   absentStaffId     Int
   substituteStaffId Int
   classEnrolled     String
+  leaveId           Int?
   assignedAt        DateTime @default(now())
   absentStaff       Staff    @relation("AbsentStaff", fields: [absentStaffId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "substitute_assignments_ibfk_1")
   substituteStaff   Staff    @relation("SubstituteStaff", fields: [substituteStaffId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "substitute_assignments_ibfk_2")
+  leave             LeaveRequest? @relation(fields: [leaveId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "substitute_assignments_ibfk_3")
 
   @@index([absentStaffId], map: "idx_absent_staff")
   @@index([classEnrolled], map: "idx_class")
+  @@index([leaveId], map: "idx_substitute_leaveId")
   @@index([substituteStaffId], map: "idx_substitute_staff")
   @@map("substitute_assignments")
 }
@@ -623,4 +632,23 @@ model BonafideRequest {
   @@index([status])
   @@index([requestedAt])
   @@map("bonafide_requests")
+}
+
+model Note {
+  id            Int       @id @default(autoincrement())
+  title         String
+  subject       String
+  section       String?   @default("All")
+  semester      String?
+  teacherName   String
+  description   String?   @db.Text
+  fileName      String
+  fileUrl       String    @db.VarChar(500)
+  uploadDate    DateTime? @default(now())
+  downloadCount Int?      @default(0)
+  staffId       Int?
+  staff         Staff?    @relation(fields: [staffId], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "notes_ibfk_1")
+
+  @@index([staffId], map: "idx_notes_staffId")
+  @@map("notes")
 }

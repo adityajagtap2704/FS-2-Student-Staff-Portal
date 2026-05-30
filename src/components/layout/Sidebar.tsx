@@ -19,6 +19,7 @@ const studentLinks = [
   { href: "/dashboard/payments",      label: "Payments",      icon: CreditCard,      exact: false },
   { href: "/dashboard/documents",     label: "Documents",     icon: FileText,        exact: false },
   { href: "/dashboard/timetable",     label: "Timetable",     icon: TableProperties, exact: false },
+  { href: "/dashboard/notes",         label: "Notes & Materials", icon: BookOpen,    exact: false },
   { href: "/dashboard/leave",         label: "Leave",         icon: CalendarOff,     exact: false },
   { href: "/dashboard/bonafide",      label: "Bonafide",      icon: FileText,        exact: false },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone,       exact: false },
@@ -33,6 +34,7 @@ const teacherLinks = [
   { href: "/dashboard/staff/students", label: "My Students", icon: Users,            exact: false },
   { href: "/dashboard/staff/fees",    label: "Fees",          icon: CreditCard,      exact: false },
   { href: "/dashboard/staff/payments", label: "Payments",    icon: CreditCard,       exact: false },
+  { href: "/dashboard/notes",         label: "Notes & Materials", icon: BookOpen,    exact: false },
   { href: "/dashboard/announcements", label: "Announcements", icon: Megaphone,       exact: false },
 ];
 
