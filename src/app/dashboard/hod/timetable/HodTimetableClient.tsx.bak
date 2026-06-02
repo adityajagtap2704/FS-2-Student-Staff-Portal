@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Session } from "next-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import { Calendar, Plus, Trash2, Eye, EyeOff, Save, X, AlertCircle, CheckCircle, Grid3X3, Download, Sparkles, UserX, Users } from "lucide-react";
+import { Calendar, Plus, Trash2, Eye, EyeOff, Save, X, AlertCircle, CheckCircle, Grid3X3, Download, Sparkles, UserX } from "lucide-react";
 import Link from "next/link";
 import AddableSelect, { SelectOption } from "@/components/ui/AddableSelect";
 
@@ -468,7 +468,7 @@ export default function HodTimetableClient({ session }: { session:Session }) {
                           </span>
                         )}
                         {leave && !leave.hasCoverage && (
-                          <Link href={`/dashboard/hod/class-assignments?staffId=${leave.absentStaffId}&staffName=${encodeURIComponent(leave.absentStaffName)}&date=${viewDate}`} onClick={e => e.stopPropagation()} className="text-[10px] bg-red-500/90 hover:bg-red-600 rounded px-1.5 py-0.5 w-fit text-white underline">⚠ Absent — assign sub →</Link>
+                          <span className="text-[10px] bg-red-500/90 rounded px-1.5 py-0.5 w-fit">Teacher absent — no substitute</span>
                         )}
                       </div>
                     );
@@ -479,32 +479,27 @@ export default function HodTimetableClient({ session }: { session:Session }) {
 
           {/* Class teacher absent banner */}
           {classTeacherLeaveForSelectedDate && (
-            <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border px-4 py-3 ${classTeacherLeaveForSelectedDate.hasCoverage ? "border-amber-200 bg-amber-50" : "border-red-200 bg-red-50"}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <div className="flex items-start gap-2">
-                <UserX size={16} className={`shrink-0 mt-0.5 ${classTeacherLeaveForSelectedDate.hasCoverage ? "text-amber-600" : "text-red-500"}`} />
+                <UserX size={16} className="text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <p className={`text-sm font-semibold ${classTeacherLeaveForSelectedDate.hasCoverage ? "text-amber-800" : "text-red-800"}`}>
+                  <p className="text-sm font-semibold text-amber-800">
                     {classTeacher?.name || classTeacherLeaveForSelectedDate?.absentStaffName} (Class Teacher) is absent on {viewDateObj.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                   </p>
                   {classTeacherLeaveForSelectedDate?.substituteStaffName ? (
                     <p className="text-xs text-amber-700 mt-0.5">
-                      Substitute: <strong>{classTeacherLeaveForSelectedDate?.substituteStaffName}</strong> — covering this class
+                      Substitute from Class Assignments: <strong>{classTeacherLeaveForSelectedDate?.substituteStaffName}</strong>
                     </p>
                   ) : (
-                    <p className="text-xs text-red-600 mt-0.5 font-medium">⚠ No substitute assigned yet — class is uncovered!</p>
+                    <p className="text-xs text-red-600 mt-0.5 font-medium">No substitute assigned yet.</p>
                   )}
                 </div>
               </div>
               <Link
-                href={`/dashboard/hod/class-assignments?staffId=${classTeacherLeaveForSelectedDate.absentStaffId}&staffName=${encodeURIComponent(classTeacherLeaveForSelectedDate.absentStaffName)}&date=${viewDate}`}
-                className={`flex items-center gap-1.5 shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${
-                  classTeacherLeaveForSelectedDate.hasCoverage
-                    ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                    : "bg-red-500 text-white hover:bg-red-600"
-                }`}
+                href="/dashboard/hod/class-assignments"
+                className="text-xs font-semibold text-amber-800 underline hover:text-amber-900 shrink-0"
               >
-                <Users size={12} />
-                {classTeacherLeaveForSelectedDate.hasCoverage ? "Change Substitute" : "Assign Substitute Now"}
+                Manage in Class Assignments →
               </Link>
             </div>
           )}
@@ -566,19 +561,12 @@ export default function HodTimetableClient({ session }: { session:Session }) {
                         style={{background:`${entry.subject.color}${leaveState && day === viewDayOfWeek ? "20" : "12"}`,borderLeft:`2.5px solid ${leaveState && day === viewDayOfWeek ? "#f59e0b" : entry.subject.color}`}}>
                         <p className="text-[10px] font-bold leading-tight truncate" style={{color:entry.subject.color}}>{entry.subject.name}</p>
                         <p className={`text-[9px] leading-tight truncate mt-0.5 ${leaveState && day === viewDayOfWeek ? "text-amber-700 line-through" : "text-gray-500"}`}>{getName(entry.staffId)}</p>
-                        {leaveState && day === viewDayOfWeek && leaveState.hasCoverage && (
-                            <p className="text-[8px] font-semibold text-emerald-700 truncate">
-                              {`↳ Sub: ${leaveState.substituteStaffName}`}
-                            </p>
-                        )}
-                        {leaveState && day === viewDayOfWeek && !leaveState.hasCoverage && (
-                          <Link
-                            href={`/dashboard/hod/class-assignments?staffId=${leaveState.absentStaffId}&staffName=${encodeURIComponent(leaveState.absentStaffName)}&date=${viewDate}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-[9px] bg-red-500/95 hover:bg-red-600 rounded px-1.5 py-0.5 w-fit text-white font-semibold block mt-1 hover:underline truncate"
-                          >
-                            ⚠ Absent — assign sub →
-                          </Link>
+                        {leaveState && day === viewDayOfWeek && (
+                          <p className="text-[8px] font-semibold text-amber-700 truncate">
+                            {leaveState.hasCoverage
+                              ? `↳ Sub: ${leaveState.substituteStaffName}`
+                              : "● Absent — assign sub"}
+                          </p>
                         )}
                         {entry.classroom&&<p className="text-[8px] text-gray-400 truncate">{entry.classroom.name}</p>}
                         {isLive && (

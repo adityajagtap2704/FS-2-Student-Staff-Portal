@@ -7,7 +7,7 @@ export async function GET() {
   try {
     const session = await getServerSession(authOptions);
     const user    = session?.user as any;
-    if (!session || (user?.role !== "CLASS_TEACHER" && user?.role !== "HOD")) {
+    if (!session || !["CLASS_TEACHER", "HOD", "NON_TEACHING_STAFF"].includes(user?.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

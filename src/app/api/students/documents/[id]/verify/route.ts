@@ -48,7 +48,8 @@ export async function PATCH(
       where: { id: documentId },
       data: {
         status,
-        verifiedBy: parseInt(user.id),
+        verifiedByStaffId: parseInt(user.id),
+        verifiedByStaffName: user.name || "Staff Member",
         verifiedAt: new Date(),
         rejectionReason: status === "REJECTED" ? rejectionReason : null,
       },

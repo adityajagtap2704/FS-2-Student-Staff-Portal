@@ -9,16 +9,13 @@ export async function GET() {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const user = session.user as any;
-
-    // Only students have notifications — staff/HOD have no notification records
-    if (user.role !== "STUDENT") {
-      return NextResponse.json({ notifications: [], unreadCount: 0 });
-    }
-
-    const studentId = parseInt(user.id);
+    const id = parseInt(user.id);
 
     const notifications = await db.notification.findMany({
-      where: { studentId },
+      where:
+        user.role === "STUDENT" || !user.role
+          ? { studentId: id }
+          : { staffId: id },
       orderBy: { createdAt: "desc" },
     });
 
@@ -38,16 +35,13 @@ export async function DELETE() {
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const user = session.user as any;
-
-    // Only students have notifications
-    if (user.role !== "STUDENT") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const studentId = parseInt(user.id);
+    const id = parseInt(user.id);
 
     await db.notification.deleteMany({
-      where: { studentId },
+      where:
+        user.role === "STUDENT" || !user.role
+          ? { studentId: id }
+          : { staffId: id },
     });
 
     return NextResponse.json({ success: true });

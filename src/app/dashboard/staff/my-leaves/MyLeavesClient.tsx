@@ -61,6 +61,34 @@ export default function MyLeavesClient({ session }: Props) {
       .catch(() => setLoadingLB(false));
   }, []);
 
+  // Refresh leave data when the tab becomes visible again (e.g. HOD approved in another tab)
+  useEffect(() => {
+    const refreshData = () => {
+      fetch("/api/staff/leave")
+        .then(r => r.json()).then(d => {
+          if (Array.isArray(d)) setMyLeaves(sortByDesc(d, (l) => l.submittedAt));
+        })
+        .catch(() => {});
+      fetch("/api/staff/leave/balance")
+        .then(r => r.json()).then(d => { setMyLeaveBalance(d); })
+        .catch(() => {});
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshData();
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    // Also poll every 30 seconds so the HOD's own dashboard reflects changes too
+    const interval = setInterval(refreshData, 30000);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearInterval(interval);
+    };
+  }, []);
+
   const validateForm = () => {
     const e: Record<string, string> = {};
     if (!form.type) e.type = "Please select a leave type";
@@ -179,8 +207,25 @@ export default function MyLeavesClient({ session }: Props) {
               <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                 {myLeaveBalance.monthlyBreakdown && myLeaveBalance.monthlyBreakdown.length > 0 ? (
                   myLeaveBalance.monthlyBreakdown.map((m, idx) => {
-                    const isCurrentMonth = new Date().getMonth() === idx;
+                    const currentMonthIdx = new Date().getMonth();
+                    const isCurrentMonth = currentMonthIdx === idx;
+                    const isFutureMonth = idx > currentMonthIdx;
                     const usagePercent = (m.used / myLeaveBalance.monthlyLimit) * 100;
+                    // Only show warning colors for current/past months
+                    const textColor = isFutureMonth
+                      ? "text-gray-400"
+                      : m.remaining === 0
+                      ? "text-red-600"
+                      : m.remaining === 1
+                      ? "text-amber-600"
+                      : "text-emerald-600";
+                    const barColor = isFutureMonth
+                      ? "bg-gray-300"
+                      : m.remaining === 0
+                      ? "bg-red-400"
+                      : m.remaining === 1
+                      ? "bg-amber-400"
+                      : "bg-emerald-400";
                     return (
                       <motion.div
                         key={m.month}
@@ -194,22 +239,14 @@ export default function MyLeavesClient({ session }: Props) {
                         }`}
                       >
                         <p className="text-[10px] font-semibold text-gray-400 uppercase">{m.month}</p>
-                        <p className={`text-sm font-bold mt-1 ${
-                          m.remaining === 0 ? "text-red-600" :
-                          m.remaining === 1 ? "text-amber-600" :
-                          "text-emerald-600"
-                        }`}>
+                        <p className={`text-sm font-bold mt-1 ${textColor}`}>
                           {m.remaining}
                         </p>
                         <p className="text-[9px] text-gray-400 mt-0.5">of {myLeaveBalance.monthlyLimit}</p>
                         {/* Mini progress bar */}
                         <div className="mt-1.5 h-1 rounded-full bg-gray-200 overflow-hidden">
                           <div
-                            className={`h-full transition-all duration-300 ${
-                              m.remaining === 0 ? "bg-red-400" :
-                              m.remaining === 1 ? "bg-amber-400" :
-                              "bg-emerald-400"
-                            }`}
+                            className={`h-full transition-all duration-300 ${barColor}`}
                             style={{ width: `${usagePercent}%` }}
                           />
                         </div>

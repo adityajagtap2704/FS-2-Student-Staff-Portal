@@ -37,8 +37,10 @@ export default function StaffTimetableClient({ session }: { session:Session }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      const currentDate = selDate || today;
+      const dateStr = currentDate.toISOString().slice(0, 10);
       const [tRes, sfRes, spRes] = await Promise.all([
-        fetch(`/api/timetable?staffId=${staffId}`),
+        fetch(`/api/timetable?staffId=${staffId}&date=${dateStr}`),
         fetch(`/api/timetable/staff`),
         fetch(`/api/timetable/special?month=${calMonth.getMonth()+1}&year=${calMonth.getFullYear()}`),
       ]);
@@ -50,7 +52,7 @@ export default function StaffTimetableClient({ session }: { session:Session }) {
       setSpecials(sp.schedules||[]);
     } catch {}
     setLoading(false);
-  }, [staffId, calMonth]);
+  }, [staffId, calMonth, selDate]);
 
   useEffect(()=>{ load(); },[load]);
 
@@ -88,6 +90,18 @@ export default function StaffTimetableClient({ session }: { session:Session }) {
           <p className="text-xs text-gray-400 mt-0.5">Your assignments across all classes</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Date Picker */}
+          <input
+            type="date"
+            value={(selDate || today).toISOString().slice(0, 10)}
+            onChange={(e) => {
+              if (e.target.value) {
+                setSelDate(new Date(e.target.value + "T12:00:00"));
+              }
+            }}
+            className="px-3 py-1.5 text-xs border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 text-gray-700 font-medium"
+            title="Choose date to view teaching & substitute schedule"
+          />
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
             {views.map(([v,Icon,label])=>(
               <button key={v} onClick={()=>setView(v)}
@@ -150,16 +164,28 @@ export default function StaffTimetableClient({ session }: { session:Session }) {
                     {DAYS.map((_,i)=>{
                       const d=i+1, e=getE(d,slot.id), cur=isCurrent(slot,d);
                       if (slot.isBreak) return <div key={i} className="border-r border-gray-100 last:border-0 bg-amber-50/20"/>;
+                      const isSub = (e as any)?.isSubstitution;
+                      const absentName = isSub && (e as any).substitutedForStaffId ? staffMap[(e as any).substitutedForStaffId] : null;
                       return (
-                        <div key={i} className={`border-r border-gray-100 last:border-0 p-0.5 min-h-[56px] ${cur?"bg-emerald-50 ring-1 ring-inset ring-emerald-300":d===todayDay?"bg-emerald-50/20":"hover:bg-gray-50"}`}>
+                        <div key={i} className={`border-r border-gray-100 last:border-0 p-0.5 min-h-[56px] ${cur?"bg-emerald-50 ring-1 ring-inset ring-emerald-300":isSub?"bg-amber-50/50 ring-1 ring-inset ring-amber-300":d===todayDay?"bg-emerald-50/20":"hover:bg-gray-50"}`}>
                           {e?.subject ? (
-                            <div className="h-full rounded-md px-1.5 py-1" style={{background:e.subject.color+"13",borderLeft:`2.5px solid ${e.subject.color}`}}>
-                              <p className="text-[10px] font-bold leading-tight truncate" style={{color:e.subject.color}}>{e.subject.name}</p>
+                            <div className={`h-full rounded-md px-1.5 py-1 ${isSub ? "ring-1 ring-amber-400" : ""}`}
+                                 style={{
+                                   background: isSub ? "#f59e0b13" : e.subject.color+"13",
+                                   borderLeft: `2.5px solid ${isSub ? "#f59e0b" : e.subject.color}`
+                                 }}>
+                              <p className="text-[10px] font-bold leading-tight truncate" style={{color: isSub ? "#d97706" : e.subject.color}}>{e.subject.name}</p>
                               <p className="text-[9px] text-emerald-600 font-semibold truncate">{e.classEnrolled}</p>
-                              {e.staffId && staffMap[e.staffId] && (
-                                <p className="text-[8px] text-gray-500 truncate flex items-center gap-0.5">
-                                  <User size={7}/>{staffMap[e.staffId]}
+                              {isSub && absentName ? (
+                                <p className="text-[8px] text-amber-700 font-semibold truncate mt-0.5 flex items-center gap-0.5">
+                                  <span>↳ Sub: {absentName}</span>
                                 </p>
+                              ) : (
+                                e.staffId && staffMap[e.staffId] && (
+                                  <p className="text-[8px] text-gray-500 truncate flex items-center gap-0.5">
+                                    <User size={7}/>{staffMap[e.staffId]}
+                                  </p>
+                                )
                               )}
                               {e.classroom && <p className="text-[8px] text-gray-400 truncate">{e.classroom.name}</p>}
                               {cur && <span className="text-[8px] bg-emerald-500 text-white rounded px-1 inline-block">● Live</span>}
@@ -194,45 +220,53 @@ export default function StaffTimetableClient({ session }: { session:Session }) {
                       <div className="h-px flex-1 bg-gray-100"/><span className="shrink-0">{slot.breakLabel}</span><div className="h-px flex-1 bg-gray-100"/>
                     </div>
                   );
+                  const isSub = (e as any)?.isSubstitution;
+                  const absentName = isSub && (e as any).substitutedForStaffId ? staffMap[(e as any).substitutedForStaffId] : null;
                   return (
-                    <motion.div key={slot.id} initial={{opacity:0,x:-6}} animate={{opacity:1,x:0}}
-                      className={`flex gap-3 p-3 rounded-2xl border transition-all ${cur?"border-emerald-300 bg-emerald-50 shadow-sm":"border-gray-100 bg-white hover:border-gray-200"}`}>
-                      <div className="text-center w-12 shrink-0">
-                        <p className="text-[10px] font-bold text-emerald-600">P{slot.slotNumber}</p>
-                        <p className="text-[9px] text-gray-400">{slot.startTime}</p>
-                        <p className="text-[9px] text-gray-300">–{slot.endTime}</p>
-                        {cur && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse block mx-auto mt-1"/>}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        {e?.subject ? (
-                          <div className="flex items-start gap-2">
-                            <div className="h-full w-0.5 rounded-full shrink-0 mt-0.5" style={{backgroundColor:e.subject.color, minHeight:36}}/>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-semibold text-gray-800 text-sm truncate">{e.subject.name}</p>
-                              <div className="flex flex-wrap gap-1.5 mt-1">
-                                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full">{e.classEnrolled} · {e.section}</span>
-                                {e.staffId && staffMap[e.staffId] && (
-                                  <span className="flex items-center gap-0.5 text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full">
-                                    <User size={9}/>{staffMap[e.staffId]}
-                                  </span>
-                                )}
-                                {e.classroom && (
-                                  <span className="flex items-center gap-0.5 text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full">
-                                    <MapPin size={9}/>{e.classroom.name}
-                                  </span>
-                                )}
+                      <motion.div key={slot.id} initial={{opacity:0,x:-6}} animate={{opacity:1,x:0}}
+                        className={`flex gap-3 p-3 rounded-2xl border transition-all ${cur?"border-emerald-300 bg-emerald-50 shadow-sm":isSub?"border-amber-200 bg-amber-50/50 hover:border-amber-300":"border-gray-100 bg-white hover:border-gray-200"}`}>
+                        <div className="text-center w-12 shrink-0">
+                          <p className="text-[10px] font-bold text-emerald-600">P{slot.slotNumber}</p>
+                          <p className="text-[9px] text-gray-400">{slot.startTime}</p>
+                          <p className="text-[9px] text-gray-300">–{slot.endTime}</p>
+                          {cur && <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse block mx-auto mt-1"/>}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          {e?.subject ? (
+                            <div className="flex items-start gap-2">
+                              <div className="h-full w-0.5 rounded-full shrink-0 mt-0.5" style={{backgroundColor: isSub ? "#f59e0b" : e.subject.color, minHeight:36}}/>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-semibold text-gray-800 text-sm truncate">{e.subject.name}</p>
+                                <div className="flex flex-wrap gap-1.5 mt-1">
+                                  <span className={`text-[10px] font-semibold ${isSub ? "text-amber-800 bg-amber-100/60 border-amber-200" : "text-emerald-600 bg-emerald-50 border-emerald-200"} border px-1.5 py-0.5 rounded-full`}>{e.classEnrolled} · {e.section}</span>
+                                  {isSub && absentName ? (
+                                    <span className="flex items-center gap-0.5 text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full font-medium">
+                                      ↳ Subbing for {absentName}
+                                    </span>
+                                  ) : (
+                                    e.staffId && staffMap[e.staffId] && (
+                                      <span className="flex items-center gap-0.5 text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full">
+                                        <User size={9}/>{staffMap[e.staffId]}
+                                      </span>
+                                    )
+                                  )}
+                                  {e.classroom && (
+                                    <span className="flex items-center gap-0.5 text-[10px] text-gray-500 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded-full">
+                                      <MapPin size={9}/>{e.classroom.name}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-gray-400">
-                            <div className="w-0.5 rounded-full bg-gray-200" style={{minHeight:36}}/>
-                            <p className="text-sm">Free Period</p>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  );
+                          ) : (
+                            <div className="flex items-center gap-2 text-gray-400">
+                              <div className="w-0.5 rounded-full bg-gray-200" style={{minHeight:36}}/>
+                              <p className="text-sm">Free Period</p>
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
                 })}
               </div>
             </motion.div>

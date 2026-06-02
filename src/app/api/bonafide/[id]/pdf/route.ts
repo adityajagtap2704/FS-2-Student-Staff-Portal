@@ -346,6 +346,7 @@ export async function GET(
           <tr><td>Roll Number</td>     <td>${rollNumber}</td></tr>
           <tr><td>Class / Section</td> <td>${classEnrolled}</td></tr>
           <tr><td>Date of Approval</td><td>${approvedDate}</td></tr>
+          <tr><td>Approved By</td>     <td>${bonafide.approvedByStaffName || "Pending"}</td></tr>
           <tr><td>Date of Issue</td>   <td>${issuedDate}</td></tr>
         </tbody>
       </table>
@@ -355,7 +356,7 @@ export async function GET(
     <div class="sig-wrap">
       <div class="sig-left">
         <div class="sig-line"></div>
-        <div class="sig-name">Authorised Signatory</div>
+        <div class="sig-name">${bonafide.approvedByStaffName || "Authorised Signatory"}</div>
         <div class="sig-title">KALNET School Administration</div>
         <div class="sig-sub">(Non-Teaching Staff / Office)</div>
       </div>

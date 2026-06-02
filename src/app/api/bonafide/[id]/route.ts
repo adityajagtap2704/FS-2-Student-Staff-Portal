@@ -58,8 +58,11 @@ export async function PATCH(
       where: { id },
       data: {
         status,
-        approvedBy: staffId,
-        ...(status === "APPROVED" && { approvedAt: new Date() }),
+        ...(status === "APPROVED" && {
+          approvedByStaffId: staffId,
+          approvedByStaffName: user.name || "Non-Teaching Staff",
+          approvedAt: new Date(),
+        }),
         ...(status === "REJECTED" && { rejectionReason: rejectionReason?.trim() || null }),
       },
     });

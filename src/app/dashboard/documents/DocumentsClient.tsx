@@ -18,6 +18,8 @@ type Document = {
   fileSize: number;
   uploadedAt: string;
   status: "PENDING" | "VERIFIED" | "REJECTED";
+  verifiedByStaffId?: number | null;
+  verifiedByStaffName?: string | null;
   rejectionReason?: string;
 };
 
@@ -313,11 +315,11 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-50">
-                  {["Type", "File Name", "Uploaded", "Status", "Action"].map((h, i) => (
+                  {["Type", "File Name", "Uploaded", "Status", "Verified By", "Action"].map((h, i) => (
                     <th
                       key={h}
                       className={`px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wide ${
-                        i === 4 ? "text-right" : "text-left"
+                        i === 5 ? "text-right" : "text-left"
                       }`}
                     >
                       {h}
@@ -346,6 +348,13 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
                         <Badge variant={cfg.variant} dot>
                           {cfg.label}
                         </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 font-medium">
+                        {doc.status === "PENDING" ? (
+                          <span className="text-gray-400 italic">Pending</span>
+                        ) : (
+                          doc.verifiedByStaffName || "—"
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">

@@ -8,7 +8,7 @@ import {
   isValidTargetForRole,
 } from "@/lib/announcements";
 import { prismaOrder } from "@/lib/sortOrder";
-import { createNotificationNoDuplicates } from "@/lib/notificationHelper";
+import { createNotificationNoDuplicates, createStaffNotificationNoDuplicates } from "@/lib/notificationHelper";
 
 export async function GET(req: Request) {
   try {
@@ -99,14 +99,20 @@ export async function POST(req: Request) {
         const staff = await db.staff.findMany({
           where: { 
             isActive: true,
-            role: "CLASS_TEACHER"
+            role: { in: ["CLASS_TEACHER", "HOD"] }
           },
-          select: { id: true, email: true },
+          select: { id: true },
         });
 
-        // For staff, we could send emails or create a staff notification table
-        // For now, log that staff should be notified
-        console.log(`[ANNOUNCEMENT] ${staff.length} teaching staff should be notified about: ${title}`);
+        for (const member of staff) {
+          await createStaffNotificationNoDuplicates(
+            member.id,
+            "GENERAL",
+            `New Announcement: ${title}`,
+            description,
+            60
+          );
+        }
       }
 
       if (target === "NON_TEACHING_STAFF" || target === "BOTH") {
@@ -116,12 +122,18 @@ export async function POST(req: Request) {
             isActive: true,
             role: "NON_TEACHING_STAFF"
           },
-          select: { id: true, email: true },
+          select: { id: true },
         });
 
-        // For non-teaching staff, we could send emails or create a staff notification table
-        // For now, log that non-teaching staff should be notified
-        console.log(`[ANNOUNCEMENT] ${ntsStaff.length} non-teaching staff should be notified about: ${title}`);
+        for (const member of ntsStaff) {
+          await createStaffNotificationNoDuplicates(
+            member.id,
+            "GENERAL",
+            `New Announcement: ${title}`,
+            description,
+            60
+          );
+        }
       }
     } catch (notifError) {
       console.error("Error creating notifications:", notifError);

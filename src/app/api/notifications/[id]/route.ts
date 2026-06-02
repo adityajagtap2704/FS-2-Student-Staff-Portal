@@ -11,7 +11,18 @@ export async function PATCH(
     const session = await getServerSession(authOptions);
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const user = session.user as any;
+    const userId = parseInt(user.id);
+
     const id = parseInt(params.id);
+    const existing = await db.notification.findUnique({ where: { id } });
+    if (
+      !existing ||
+      ((user.role === "STUDENT" || !user.role) ? existing.studentId !== userId : existing.staffId !== userId)
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const updated = await db.notification.update({
       where: { id },
       data:  { isRead: true },
@@ -33,6 +44,7 @@ export async function DELETE(
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const user = session.user as any;
+    const userId = parseInt(user.id);
     const id = parseInt(params.id);
 
     // Verify the notification belongs to the user
@@ -40,7 +52,10 @@ export async function DELETE(
       where: { id },
     });
 
-    if (!notification || notification.studentId !== parseInt(user.id)) {
+    if (
+      !notification ||
+      ((user.role === "STUDENT" || !user.role) ? notification.studentId !== userId : notification.staffId !== userId)
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

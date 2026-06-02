@@ -19,19 +19,37 @@ export async function GET(req: Request) {
 
     const url = new URL(req.url);
     const limit = Number(url.searchParams.get("limit") ?? "500");
+    const query = (url.searchParams.get("q") ?? "").trim();
 
-    // Fetch all active students
+    // Fetch all active students, optionally filtered by search query
     const students = await db.student.findMany({
       where: {
         isActive: true,
+        ...(query
+          ? {
+              OR: [
+                { name: { contains: query } },
+                { rollNumber: { contains: query } },
+                { classEnrolled: { contains: query } },
+                { email: { contains: query } },
+                { phone: { contains: query } },
+                { parentName: { contains: query } },
+              ],
+            }
+          : {}),
       },
       select: {
         id: true,
         name: true,
         email: true,
+        phone: true,
+        parentName: true,
+        parentEmail: true,
         classEnrolled: true,
         rollNumber: true,
         status: true,
+        admissionDate: true,
+        isActive: true,
       },
       orderBy: { name: "asc" },
       take: limit,

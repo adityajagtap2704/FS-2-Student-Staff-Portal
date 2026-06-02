@@ -45,7 +45,14 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
   // Auto-refresh every 30 seconds to check for HOD approvals
   useEffect(() => {
     const interval = setInterval(() => refreshData(), 30000);
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshData();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, [isStaff]);
 
   const refreshData = async () => {
@@ -63,6 +70,13 @@ export default function LeaveClient({ initialData, stats, balance }: Props) {
         );
       } else {
         console.error("Failed to refresh leave data:", leaveRes.status);
+      }
+      // Also refresh balance so HOD approvals reflect instantly
+      const balanceEndpoint = isStaff ? "/api/staff/leave/balance" : "/api/leave/balance";
+      const balRes = await fetch(balanceEndpoint);
+      if (balRes.ok) {
+        const balData = await balRes.json();
+        setCurrentBalance(balData);
       }
     } catch (error) {
       console.error("Error refreshing leave data:", error);

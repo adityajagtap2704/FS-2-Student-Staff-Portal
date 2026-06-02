@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
               timetable_entries: {
                 where: {
                   classEnrolled,
-                  dayOfWeek: singleDate.getDay() === 0 ? 6 : singleDate.getDay() - 1,
+                  dayOfWeek: singleDate.getDay() === 0 ? 7 : singleDate.getDay(),
                 },
                 include: {
                   slot: true,
@@ -197,34 +197,24 @@ export async function POST(req: NextRequest) {
     }
 
     // Create or update substitute assignment
-    const existing = await db.substituteAssignment.findFirst({
-      where: {
-        absentStaffId,
-        classEnrolled,
-      },
+    const parsedLeaveId = leaveId ? parseInt(String(leaveId)) : null;
+    const cleanLeaveId = parsedLeaveId && !isNaN(parsedLeaveId) ? parsedLeaveId : null;
+
+    let existing = await db.substituteAssignment.findFirst({
+      where: { absentStaffId, classEnrolled, leaveId: cleanLeaveId },
     });
 
     let assignment;
     if (existing) {
       assignment = await db.substituteAssignment.update({
         where: { id: existing.id },
-        data: { substituteStaffId },
-        include: {
-          substituteStaff: true,
-          absentStaff: true,
-        },
+        data: { substituteStaffId, leaveId: cleanLeaveId },
+        include: { substituteStaff: true, absentStaff: true },
       });
     } else {
       assignment = await db.substituteAssignment.create({
-        data: {
-          absentStaffId,
-          substituteStaffId,
-          classEnrolled,
-        },
-        include: {
-          substituteStaff: true,
-          absentStaff: true,
-        },
+        data: { absentStaffId, substituteStaffId, classEnrolled, leaveId: cleanLeaveId },
+        include: { substituteStaff: true, absentStaff: true },
       });
     }
 

@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 import PageLayout from "@/components/layout/PageLayout";
 import ClassAssignmentsClient from "./ClassAssignmentsClient";
 
@@ -25,7 +26,9 @@ export default async function ClassAssignmentsPage() {
 
   return (
     <PageLayout session={session} title="Class Assignments">
-      <ClassAssignmentsClient />
+      <Suspense fallback={null}>
+        <ClassAssignmentsClient />
+      </Suspense>
     </PageLayout>
   );
 }

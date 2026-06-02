@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, Search, BookOpen, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Users, Search, Filter, BookOpen, CheckCircle2, AlertCircle } from "lucide-react";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
@@ -29,24 +27,16 @@ interface StaffMember {
 }
 
 export default function ClassAssignmentsClient() {
-  const searchParams = useSearchParams();
-  const focusStaffId = searchParams.get("staffId") ? parseInt(searchParams.get("staffId")!) : null;
-  const focusStaffName = searchParams.get("staffName") || null;
-  const focusDate = searchParams.get("date") || null;
-
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [filteredStaff, setFilteredStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState<"ALL" | "APPROVED" | "PENDING">("ALL");
   const [filterClass, setFilterClass] = useState<"ALL" | string>("ALL");
-  const [selectedDate, setSelectedDate] = useState(() => focusDate || new Date().toISOString().slice(0, 10));
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [selectedSubstitutes, setSelectedSubstitutes] = useState<Record<number, string>>({});
   const [assigningSubId, setAssigningSubId] = useState<number | null>(null);
   const { error: showError, success: showSuccess } = useToast();
-
-  // Ref map for scrolling to a specific card
-  const cardRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
   // Fetch staff
   useEffect(() => {
@@ -54,7 +44,11 @@ export default function ClassAssignmentsClient() {
       try {
         setLoading(true);
         const response = await fetch(`/api/hod/staff?date=${selectedDate}`);
-        if (!response.ok) throw new Error("Failed to fetch staff");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch staff");
+        }
+
         const data = await response.json();
         setStaff(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -64,18 +58,9 @@ export default function ClassAssignmentsClient() {
         setLoading(false);
       }
     };
+
     fetchStaff();
   }, [showError, selectedDate]);
-
-  // Scroll to focused staff card after data loads
-  useEffect(() => {
-    if (!focusStaffId || loading) return;
-    const timer = setTimeout(() => {
-      const el = cardRefs.current[focusStaffId];
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [focusStaffId, loading, filteredStaff]);
 
   const handleAssignSubstitute = async (absentStaffId: number, classEnrolled: string, leaveId?: number | null) => {
     const substituteStaffId = selectedSubstitutes[absentStaffId];
@@ -88,12 +73,14 @@ export default function ClassAssignmentsClient() {
       setAssigningSubId(absentStaffId);
       const res = await fetch("/api/hod/substitute-assignments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           absentStaffId,
           substituteStaffId: parseInt(substituteStaffId),
           classEnrolled,
-          leaveId,
+          leaveId: leaveId || null,
         }),
       });
 
@@ -107,15 +94,17 @@ export default function ClassAssignmentsClient() {
       } else {
         alert("Substitute assigned successfully");
       }
-
+      
+      // Update local state instead of refetching everything to be faster
       const substitute = staff.find(s => s.id === parseInt(substituteStaffId));
       if (substitute) {
-        setStaff(prev => prev.map(s =>
-          s.id === absentStaffId
+        setStaff(prev => prev.map(s => 
+          s.id === absentStaffId 
             ? { ...s, substituteId: substitute.id, substituteName: substitute.name }
             : s
         ));
       }
+      
     } catch (err: any) {
       console.error("Error assigning substitute:", err);
       showError(err.message || "Failed to assign substitute");
@@ -127,11 +116,8 @@ export default function ClassAssignmentsClient() {
   const handleRemoveSubstitute = async (absentStaffId: number, leaveId?: number | null) => {
     try {
       setAssigningSubId(absentStaffId);
-      const queryParams: Record<string, string> = { absentStaffId: String(absentStaffId) };
-      if (leaveId != null) {
-        queryParams.leaveId = String(leaveId);
-      }
-      const qs = new URLSearchParams(queryParams);
+      const qs = new URLSearchParams({ absentStaffId: String(absentStaffId) });
+      if (leaveId) qs.set("leaveId", String(leaveId));
       const res = await fetch(`/api/hod/substitute-assignments?${qs.toString()}`, {
         method: "DELETE",
       });
@@ -146,12 +132,13 @@ export default function ClassAssignmentsClient() {
       } else {
         alert("Substitute removed successfully");
       }
-
-      setStaff(prev => prev.map(s =>
-        s.id === absentStaffId
+      
+      setStaff(prev => prev.map(s => 
+        s.id === absentStaffId 
           ? { ...s, substituteId: null, substituteName: null }
           : s
       ));
+      
     } catch (err: any) {
       console.error("Error removing substitute:", err);
       showError(err.message || "Failed to remove substitute");
@@ -168,14 +155,17 @@ export default function ClassAssignmentsClient() {
   useEffect(() => {
     let filtered = staff.filter((s) => !!s.assignedClass);
 
+    // Filter by status
     if (filterStatus !== "ALL") {
       filtered = filtered.filter((s) => s.approvalStatus === filterStatus);
     }
 
+    // Filter by class
     if (filterClass !== "ALL") {
       filtered = filtered.filter((s) => s.assignedClass === filterClass);
     }
 
+    // Filter by search term
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -186,6 +176,7 @@ export default function ClassAssignmentsClient() {
       );
     }
 
+    // Sort: on leave first, then name
     filtered.sort((a, b) => {
       if (a.isOnLeave && !b.isOnLeave) return -1;
       if (!a.isOnLeave && b.isOnLeave) return 1;
@@ -197,10 +188,13 @@ export default function ClassAssignmentsClient() {
 
   // Get unique classes
   const classes = Array.from(new Set(staff.filter((s) => s.assignedClass).map((s) => s.assignedClass)));
-
-  // Available substitute candidates — approved, not on leave, not pending leave
+  
+  // Available substitute candidates for selected date:
+  // - Approved
+  // - Not on leave on that date
+  // - No pending leave
   const substituteCandidates = staff
-    .filter((s) => s.approvalStatus === "APPROVED" && !s.isOnLeave && s.isActive)
+    .filter((s) => s.approvalStatus === "APPROVED" && !s.isOnLeave && (s.pendingLeaveCount ?? 0) === 0)
     .sort((a, b) => {
       const score = (m: StaffMember) => {
         if (!m.assignedClass) return 0;
@@ -221,6 +215,7 @@ export default function ClassAssignmentsClient() {
   const getSubstituteOptions = (absentId: number) =>
     substituteCandidates.filter((s) => s.id !== absentId);
 
+  // Calculate stats
   const stats = {
     totalStaff: staff.length,
     approvedStaff: staff.filter((s) => s.approvalStatus === "APPROVED").length,
@@ -228,6 +223,7 @@ export default function ClassAssignmentsClient() {
     assignedClasses: classes.length,
   };
 
+  // Format date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-IN", {
       year: "numeric",
@@ -245,7 +241,10 @@ export default function ClassAssignmentsClient() {
         initial="initial"
         animate="animate"
       >
-        <motion.div variants={staggerItem} className="bg-white rounded-2xl border border-gray-100 shadow-card p-4">
+        <motion.div
+          variants={staggerItem}
+          className="bg-white rounded-2xl border border-gray-100 shadow-card p-4"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500 font-medium">Total Staff</p>
@@ -257,7 +256,10 @@ export default function ClassAssignmentsClient() {
           </div>
         </motion.div>
 
-        <motion.div variants={staggerItem} className="bg-white rounded-2xl border border-gray-100 shadow-card p-4">
+        <motion.div
+          variants={staggerItem}
+          className="bg-white rounded-2xl border border-gray-100 shadow-card p-4"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500 font-medium">Approved</p>
@@ -269,7 +271,10 @@ export default function ClassAssignmentsClient() {
           </div>
         </motion.div>
 
-        <motion.div variants={staggerItem} className="bg-white rounded-2xl border border-gray-100 shadow-card p-4">
+        <motion.div
+          variants={staggerItem}
+          className="bg-white rounded-2xl border border-gray-100 shadow-card p-4"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500 font-medium">Pending</p>
@@ -281,7 +286,10 @@ export default function ClassAssignmentsClient() {
           </div>
         </motion.div>
 
-        <motion.div variants={staggerItem} className="bg-white rounded-2xl border border-gray-100 shadow-card p-4">
+        <motion.div
+          variants={staggerItem}
+          className="bg-white rounded-2xl border border-gray-100 shadow-card p-4"
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500 font-medium">Classes</p>
@@ -293,36 +301,6 @@ export default function ClassAssignmentsClient() {
           </div>
         </motion.div>
       </motion.div>
-
-      {/* Deep-link banner: shown when redirected from timetable for a specific absent teacher */}
-      {focusStaffId && focusStaffName && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3"
-        >
-          <div className="flex items-start gap-2">
-            <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-semibold text-red-800">
-                Action needed: <span className="underline">{focusStaffName}</span> is absent
-                {focusDate
-                  ? ` on ${new Date(focusDate + "T12:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
-                  : " today"}
-              </p>
-              <p className="text-xs text-red-700 mt-0.5">
-                Their class has no substitute assigned yet. Scroll down to find their card and assign one.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/dashboard/hod/timetable"
-            className="flex items-center gap-1 text-xs font-medium text-red-700 hover:text-red-900 shrink-0"
-          >
-            <ArrowLeft size={12} /> Back to Timetable
-          </Link>
-        </motion.div>
-      )}
 
       {/* Not assigned staff */}
       {!loading && unassignedStaff.length > 0 && (
@@ -341,7 +319,9 @@ export default function ClassAssignmentsClient() {
                   <p className="text-sm font-semibold text-gray-800 truncate">{member.name}</p>
                   <p className="text-xs text-gray-500 truncate">{member.email}</p>
                 </div>
-                <Badge variant="warning" dot>Not Assigned</Badge>
+                <Badge variant="warning" dot>
+                  Not Assigned
+                </Badge>
               </div>
             ))}
           </div>
@@ -353,6 +333,7 @@ export default function ClassAssignmentsClient() {
         <div className="space-y-4">
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-3">
+            {/* Date selector for leave/substitute assignment */}
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500 font-medium whitespace-nowrap">Date</span>
               <input
@@ -363,6 +344,7 @@ export default function ClassAssignmentsClient() {
                 title="Pick date to assign substitutes for leave"
               />
             </div>
+            {/* Search */}
             <div className="flex-1 relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -373,6 +355,8 @@ export default function ClassAssignmentsClient() {
                 className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
             </div>
+
+            {/* Status Filter */}
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
@@ -382,6 +366,8 @@ export default function ClassAssignmentsClient() {
               <option value="APPROVED">Approved</option>
               <option value="PENDING">Pending</option>
             </select>
+
+            {/* Class Filter */}
             {classes.length > 0 && (
               <select
                 value={filterClass}
@@ -390,7 +376,9 @@ export default function ClassAssignmentsClient() {
               >
                 <option value="ALL">All Classes</option>
                 {classes.map((cls) => (
-                  <option key={cls} value={cls}>{cls}</option>
+                  <option key={cls} value={cls}>
+                    {cls}
+                  </option>
                 ))}
               </select>
             )}
@@ -420,15 +408,10 @@ export default function ClassAssignmentsClient() {
               {filteredStaff.map((member, index) => (
                 <motion.div
                   key={member.id}
-                  ref={(el: HTMLDivElement | null) => { cardRefs.current[member.id] = el; }}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ ...easeOut, delay: index * 0.05 }}
-                  className={`bg-white rounded-xl border p-4 hover:shadow-card transition-shadow ${
-                    focusStaffId === member.id
-                      ? "border-red-400 ring-2 ring-red-300 shadow-lg"
-                      : "border-gray-100"
-                  }`}
+                  className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-card transition-shadow"
                 >
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
@@ -436,7 +419,10 @@ export default function ClassAssignmentsClient() {
                       <h4 className="font-semibold text-gray-700 truncate">{member.name}</h4>
                       <p className="text-xs text-gray-500 truncate">{member.email}</p>
                     </div>
-                    <Badge variant={member.approvalStatus === "APPROVED" ? "success" : "warning"} dot>
+                    <Badge
+                      variant={member.approvalStatus === "APPROVED" ? "success" : "warning"}
+                      dot
+                    >
                       {member.approvalStatus}
                     </Badge>
                   </div>
@@ -486,11 +472,11 @@ export default function ClassAssignmentsClient() {
                           >
                             <option value="">Select Substitute...</option>
                             {getSubstituteOptions(member.id)
-                              .filter((s) => !s.assignedClass || s.isFreeRightNow)
+                              .filter((s) => !s.isOnLeave && (s.pendingLeaveCount ?? 0) === 0 && (!s.assignedClass || s.isFreeRightNow))
                               .length > 0 && (
                               <optgroup label="Recommended — Not Assigned / Free Now">
                                 {getSubstituteOptions(member.id)
-                                  .filter((s) => !s.assignedClass || s.isFreeRightNow)
+                                  .filter((s) => !s.isOnLeave && (s.pendingLeaveCount ?? 0) === 0 && (!s.assignedClass || s.isFreeRightNow))
                                   .map((sub) => (
                                     <option key={sub.id} value={sub.id}>
                                       {substituteLabel(sub)}
@@ -499,11 +485,11 @@ export default function ClassAssignmentsClient() {
                               </optgroup>
                             )}
                             {getSubstituteOptions(member.id)
-                              .filter((s) => s.assignedClass && !s.isFreeRightNow)
+                              .filter((s) => s.isOnLeave || (s.pendingLeaveCount ?? 0) > 0 || !s.isFreeRightNow)
                               .length > 0 && (
                               <optgroup label="Other — currently teaching a class">
                                 {getSubstituteOptions(member.id)
-                                  .filter((s) => s.assignedClass && !s.isFreeRightNow)
+                                  .filter((s) => s.isOnLeave || (s.pendingLeaveCount ?? 0) > 0 || !s.isFreeRightNow)
                                   .map((sub) => (
                                     <option key={sub.id} value={sub.id}>
                                       {substituteLabel(sub)}
@@ -518,7 +504,7 @@ export default function ClassAssignmentsClient() {
                             className="w-full py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs rounded-md transition-colors font-medium flex items-center justify-center gap-1 bg-amber-600 hover:bg-amber-700"
                           >
                             {assigningSubId === member.id ? (
-                              <div className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                               <div className="h-3 w-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
                             ) : "Assign Substitute"}
                           </button>
                         </div>

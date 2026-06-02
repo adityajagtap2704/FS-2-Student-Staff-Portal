@@ -22,8 +22,8 @@ export function getDaysBetween(fromDate: Date, toDate: Date): Date[] {
  * Get day of week (1 = Monday, 6 = Saturday)
  */
 export function getDayOfWeek(date: Date): number {
-  const day = date.getDay(); // 0 = Sunday, 6 = Saturday
-  return day === 0 ? 6 : day - 1; // Convert to 1-6 (Mon-Sat)
+  const day = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  return day === 0 ? 7 : day; // Convert to 1-7 (Mon-Sun)
 }
 
 function toYMDLocal(d: Date): string {
@@ -46,6 +46,16 @@ export async function checkLeaveCoverage(
   const days = getDaysBetween(fromDate, toDate);
   const uncoveredSlots: any[] = [];
   const coveredSlots: any[] = [];
+
+  // Find matching leave request to get its ID
+  const leave = await db.leaveRequest.findFirst({
+    where: {
+      staffId,
+      fromDate: { lte: toDate },
+      toDate: { gte: fromDate },
+      status: "APPROVED",
+    },
+  });
   
   for (const date of days) {
     const dayOfWeek = getDayOfWeek(date);
@@ -65,11 +75,12 @@ export async function checkLeaveCoverage(
     });
 
     for (const slot of slots) {
-      // Check if substitute is already assigned for this class
+      // Check if substitute is already assigned for this class and leave
       const substitute = await db.substituteAssignment.findFirst({
         where: {
           absentStaffId: staffId,
-          classEnrolled: slot.classEnrolled,
+          classEnrolled: slot.classEnrolled ?? undefined,
+          leaveId: leave?.id || undefined,
         },
         include: {
           substituteStaff: true,
@@ -197,6 +208,7 @@ export async function getLeaveAffectedStaffForDate(
         where: {
           absentStaffId: leave.staffId,
           classEnrolled,
+          leaveId: leave.id,
         },
         include: {
           substituteStaff: true,

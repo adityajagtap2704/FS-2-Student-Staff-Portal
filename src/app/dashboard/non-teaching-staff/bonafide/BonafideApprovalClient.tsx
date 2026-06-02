@@ -24,6 +24,8 @@ interface BonafideRequest {
   status: "PENDING" | "APPROVED" | "REJECTED";
   requestedAt: string;
   approvedAt: string | null;
+  approvedByStaffId: number | null;
+  approvedByStaffName: string | null;
   rejectionReason: string | null;
   student: StudentInfo;
 }
@@ -84,7 +86,7 @@ export default function BonafideApprovalClient() {
         return;
       }
       setRequests(prev =>
-        prev.map(r => r.id === id ? { ...r, status: "APPROVED", approvedAt: new Date().toISOString() } : r)
+        prev.map(r => r.id === id ? { ...r, ...data } : r)
       );
       setExpandedId(null);
       setRejectingId(null);
@@ -414,12 +416,19 @@ export default function BonafideApprovalClient() {
 
                           {/* Approved info */}
                           {req.status === "APPROVED" && req.approvedAt && (
-                            <p className="text-xs text-emerald-600 flex items-center gap-1.5 bg-emerald-50 px-3 py-2 rounded-xl">
-                              <CheckCircle2 size={12} />
-                              Approved on {new Date(req.approvedAt).toLocaleDateString("en-IN", {
-                                day: "numeric", month: "long", year: "numeric",
-                              })}
-                            </p>
+                            <div className="text-xs text-emerald-600 bg-emerald-50 px-3 py-2.5 rounded-xl space-y-1">
+                              <p className="flex items-center gap-1.5 font-medium">
+                                <CheckCircle2 size={12} />
+                                Approved on {new Date(req.approvedAt).toLocaleDateString("en-IN", {
+                                  day: "numeric", month: "long", year: "numeric",
+                                })}
+                              </p>
+                              {req.approvedByStaffName && (
+                                <p className="text-[11px] text-emerald-700/80 font-medium pl-5">
+                                  Approved By: {req.approvedByStaffName}
+                                </p>
+                              )}
+                            </div>
                           )}
 
                           {/* ── Actions for PENDING only ── */}

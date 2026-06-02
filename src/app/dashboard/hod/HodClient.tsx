@@ -59,6 +59,25 @@ function StaffLeaveSection() {
       .catch(() => setLoading(false));
   }, []);
 
+  // Refresh when tab becomes visible (e.g. staff submitted new leave in another tab)
+  useEffect(() => {
+    const refreshLeaves = () => {
+      fetch("/api/hod/staff-leave")
+        .then(r => r.json())
+        .then(d => { if (Array.isArray(d)) setStaffLeaves(sortByDesc(d, (l) => l.submittedAt)); })
+        .catch(() => {});
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") refreshLeaves();
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    const interval = setInterval(refreshLeaves, 30000);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      clearInterval(interval);
+    };
+  }, []);
+
   const handleAction = async (id: number, status: "APPROVED" | "REJECTED") => {
     const res = await fetch(`/api/hod/staff-leave/${id}`, {
       method:  "PATCH",
@@ -760,7 +779,12 @@ export default function HodClient({ session }: Props) {
                                         body: JSON.stringify({ assignedClass: null }),
                                       });
                                       if (res.ok) {
-                                        setStaff(prev => prev.map(st => st.id === s.id ? { ...st, isActive: true } : st));
+                                        const data = await res.json();
+                                        // Instantly update full staff record from API response
+                                        setStaff(prev => prev.map(st => st.id === s.id
+                                          ? { ...st, isActive: true, assignedClass: data.staff?.assignedClass ?? st.assignedClass, approvalStatus: "APPROVED" }
+                                          : st
+                                        ));
                                         toast.success("Staff approved", `${s.name} account activated.`);
                                       } else {
                                         const data = await res.json();
@@ -834,9 +858,24 @@ export default function HodClient({ session }: Props) {
                                   </td>
                                   <td className="px-4 py-3">
                                     {s.role === "CLASS_TEACHER" ? (
-                                      <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold">
-                                        {s.assignedClass ?? "Unassigned"}
-                                      </span>
+                                      !s.assignedClass ? (
+                                        <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-400 text-xs font-semibold">
+                                          Unassigned
+                                        </span>
+                                      ) : s.isOnLeave && s.substituteName ? (
+                                        <div className="flex flex-col gap-0.5">
+                                          <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold">
+                                            {s.assignedClass}
+                                          </span>
+                                          <span className="px-2 py-0.5 rounded-lg bg-orange-50 text-orange-600 text-xs font-medium whitespace-nowrap">
+                                            Sub: {s.substituteName}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-xs font-semibold">
+                                          {s.assignedClass}
+                                        </span>
+                                      )
                                     ) : (
                                       <span className="text-xs text-gray-300">—</span>
                                     )}
@@ -920,9 +959,24 @@ export default function HodClient({ session }: Props) {
                               </td>
                               <td className="px-4 py-3">
                                 {s.role === "CLASS_TEACHER" ? (
-                                  <span className="px-2.5 py-1 rounded-lg bg-primary-50 text-primary text-xs font-semibold">
-                                    {s.assignedClass ?? "Unassigned"}
-                                  </span>
+                                  !s.assignedClass ? (
+                                    <span className="px-2.5 py-1 rounded-lg bg-gray-100 text-gray-400 text-xs font-semibold">
+                                      Unassigned
+                                    </span>
+                                  ) : s.isOnLeave && s.substituteName ? (
+                                    <div className="flex flex-col gap-0.5">
+                                      <span className="px-2.5 py-1 rounded-lg bg-primary-50 text-primary text-xs font-semibold">
+                                        {s.assignedClass}
+                                      </span>
+                                      <span className="px-2 py-0.5 rounded-lg bg-orange-50 text-orange-600 text-xs font-medium whitespace-nowrap">
+                                        Sub: {s.substituteName}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <span className="px-2.5 py-1 rounded-lg bg-primary-50 text-primary text-xs font-semibold">
+                                      {s.assignedClass}
+                                    </span>
+                                  )
                                 ) : (
                                   <span className="text-xs text-gray-300">—</span>
                                 )}

@@ -38,6 +38,43 @@ export async function createNotificationNoDuplicates(
   }
 }
 
+export async function createStaffNotificationNoDuplicates(
+  staffId: number,
+  type: notifications_type,
+  title: string,
+  message: string,
+  timeWindowMinutes: number = 60
+): Promise<any> {
+  try {
+    const recentNotification = await db.notification.findFirst({
+      where: {
+        staffId,
+        type: type as any,
+        title,
+        createdAt: {
+          gte: new Date(Date.now() - timeWindowMinutes * 60 * 1000),
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (recentNotification) {
+      console.log(`[NOTIFICATION] Duplicate prevented for staff ${staffId}, type ${type}`);
+      return recentNotification;
+    }
+
+    const notification = await db.notification.create({
+      data: { staffId, type, title, message },
+    });
+
+    console.log(`[NOTIFICATION] Created for staff ${staffId}, type ${type}`);
+    return notification;
+  } catch (error) {
+    console.error("[NOTIFICATION] Error:", error);
+    throw error;
+  }
+}
+
 export async function createNotificationsNoDuplicates(
   notifications: Array<{
     studentId: number;

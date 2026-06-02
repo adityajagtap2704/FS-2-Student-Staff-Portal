@@ -19,6 +19,8 @@ type Document = {
   fileSize: number;
   uploadedAt: string;
   status: "PENDING" | "VERIFIED" | "REJECTED";
+  verifiedByStaffId?: number | null;
+  verifiedByStaffName?: string | null;
   rejectionReason?: string;
   student?: {
     id: number;

@@ -57,8 +57,9 @@ export default function StudentTimetableClient({ session }: { session: Session }
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const dateStr = selectedDate.toISOString().slice(0, 10);
       const [tRes, sRes] = await Promise.all([
-        fetch("/api/timetable"),
+        fetch(`/api/timetable?date=${dateStr}`),
         fetch(`/api/timetable/special?month=${calMonth.getMonth() + 1}&year=${calMonth.getFullYear()}`),
       ]);
       const tData = await tRes.json();
@@ -72,7 +73,7 @@ export default function StudentTimetableClient({ session }: { session: Session }
       setStaffMap(map);
     } catch { }
     setLoading(false);
-  }, [calMonth]);
+  }, [calMonth, selectedDate]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -129,6 +130,18 @@ export default function StudentTimetableClient({ session }: { session: Session }
           <p className="text-sm text-gray-500 mt-1">View your weekly class schedule and upcoming events</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Date Picker */}
+          <input
+            type="date"
+            value={selectedDate.toISOString().slice(0, 10)}
+            onChange={(e) => {
+              if (e.target.value) {
+                setSelectedDate(new Date(e.target.value + "T12:00:00"));
+              }
+            }}
+            className="px-3 py-1.5 text-xs border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-emerald-300 text-gray-700 font-medium"
+            title="Choose date to view timetable and substitutions"
+          />
           {/* View Switcher */}
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
             {([["weekly", Grid3X3, "Weekly"], ["daily", CalendarDays, "Today"], ["monthly", Layers, "Monthly"]] as const).map(([v, Icon, label]) => (
@@ -361,7 +374,12 @@ export default function StudentTimetableClient({ session }: { session: Session }
                     const isSelected = day?.toDateString() === selectedDay?.toDateString();
                     return (
                       <div key={idx}
-                        onClick={() => day && setSelectedDay(day)}
+                        onClick={() => {
+                          if (day) {
+                            setSelectedDay(day);
+                            setSelectedDate(day);
+                          }
+                        }}
                         className={`min-h-[70px] p-1.5 border-b border-r border-gray-50 cursor-pointer transition-colors ${!day ? "bg-gray-50/50" : isSelected ? "bg-emerald-50" : "hover:bg-gray-50"}`}>
                         {day && (
                           <>

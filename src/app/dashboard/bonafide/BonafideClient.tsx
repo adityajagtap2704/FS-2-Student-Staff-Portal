@@ -16,6 +16,8 @@ interface BonafideRequest {
   status: "PENDING" | "APPROVED" | "REJECTED";
   requestedAt: string;
   approvedAt: string | null;
+  approvedByStaffId: number | null;
+  approvedByStaffName: string | null;
   rejectionReason: string | null;
 }
 
@@ -332,20 +334,37 @@ export default function BonafideClient() {
                             <div>
                               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Request ID</p>
                               <p className="text-sm text-[#444] font-medium mt-0.5">
-                                KALNET/BON/{new Date().getFullYear()}/{String(req.id).padStart(4, "0")}
+                                KALNET/BON/{new Date(req.requestedAt).getFullYear()}/{String(req.id).padStart(4, "0")}
                               </p>
                             </div>
                             <div>
                               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Status</p>
                               <p className={`text-sm font-semibold mt-0.5 ${cfg.color}`}>{cfg.label}</p>
                             </div>
-                            {req.approvedAt && (
+                            {req.status === "APPROVED" ? (
+                              <>
+                                <div>
+                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Approved On</p>
+                                  <p className="text-sm text-[#444] mt-0.5">
+                                    {req.approvedAt ? (() => {
+                                      const d = new Date(req.approvedAt);
+                                      const fullMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                                      return `${d.getDate()} ${fullMonths[d.getMonth()]} ${d.getFullYear()}`;
+                                    })() : "—"}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Approved By</p>
+                                  <p className="text-sm text-[#444] font-medium mt-0.5">
+                                    {req.approvedByStaffName || "—"}
+                                  </p>
+                                </div>
+                              </>
+                            ) : (
                               <div>
-                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Approved On</p>
+                                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Approved By</p>
                                 <p className="text-sm text-[#444] mt-0.5">
-                                  {new Date(req.approvedAt).toLocaleDateString("en-IN", {
-                                    day: "numeric", month: "short", year: "numeric",
-                                  })}
+                                  Pending
                                 </p>
                               </div>
                             )}

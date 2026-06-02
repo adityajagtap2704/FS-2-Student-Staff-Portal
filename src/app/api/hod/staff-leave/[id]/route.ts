@@ -43,15 +43,52 @@ export async function PATCH(
       },
     });
 
-    // If approved, check coverage and return coverage information
+    // If approved, check coverage — wrapped so it never causes a 500
     let coverageInfo = null;
     if (status === "APPROVED" && leave.staffId) {
-      coverageInfo = await checkLeaveCoverage(
-        leave.staffId,
-        leave.fromDate,
-        leave.toDate,
-        "2025-26"
-      );
+      try {
+        coverageInfo = await checkLeaveCoverage(
+          leave.staffId,
+          leave.fromDate,
+          leave.toDate,
+          "2025-26"
+        );
+      } catch (coverageError) {
+        console.error("HOD Staff Leave PATCH - coverage check failed (non-fatal):", coverageError);
+        // Coverage check is informational; don't fail the approval
+      }
+    }
+
+    // Send notification to the staff member about their leave decision
+    if (leave.staffId) {
+      try {
+        const fromStr = new Date(leave.fromDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+        const toStr   = new Date(leave.toDate).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+        await db.notification.create({
+          data: {
+            staffId: leave.staffId,
+            type: status === "APPROVED" ? "LEAVE_APPROVED" : "LEAVE_REJECTED",
+            title: status === "APPROVED" ? "Leave Approved" : "Leave Rejected",
+            message: status === "APPROVED"
+              ? `Your leave request from ${fromStr} to ${toStr} has been approved by HOD.`
+              : `Your leave request from ${fromStr} to ${toStr} has been rejected.${rejectionReason ? " Reason: " + rejectionReason : ""}`,
+          },
+        });
+        // Also notify HOD to assign substitute if approved and there are uncovered slots
+        if (status === "APPROVED" && (coverageInfo?.uncoveredSlots?.length ?? 0) > 0) {
+          const hodId = parseInt(user.id);
+          await db.notification.create({
+            data: {
+              staffId: hodId,
+              type: "GENERAL",
+              title: "Substitute Assignment Needed",
+              message: `${leave.staff?.name} is on leave from ${fromStr} to ${toStr}. Please assign a substitute in Class Assignments.`,
+            },
+          });
+        }
+      } catch (notifError) {
+        console.error("HOD Staff Leave PATCH - notification failed (non-fatal):", notifError);
+      }
     }
 
     return NextResponse.json({
@@ -60,7 +97,7 @@ export async function PATCH(
       actionRequired:
         status === "APPROVED" && (coverageInfo?.uncoveredSlots?.length ?? 0) > 0 ? true : false,
       message: status === "APPROVED" 
-        ? `Leave approved for ${leave.staff?.name}. Coverage status: ${coverageInfo?.coverageStatus}. ${coverageInfo?.uncoveredSlots?.length || 0} slots need substitute assignment.`
+        ? `Leave approved for ${leave.staff?.name}. Coverage status: ${coverageInfo?.coverageStatus ?? "unknown"}. ${coverageInfo?.uncoveredSlots?.length || 0} slots need substitute assignment.`
         : `Leave rejected for ${leave.staff?.name}`,
     });
   } catch (error) {
