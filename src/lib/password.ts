@@ -1,12 +1,18 @@
-// Store password as plain text
+import bcryptjs from "bcryptjs";
+
+// Hash password using bcrypt
 export async function hashPassword(password: string): Promise<string> {
-  // Simply return the password as-is (plain text)
-  return password;
+  const salt = await bcryptjs.genSalt(10);
+  return bcryptjs.hash(password, salt);
 }
 
-// Compare password with stored plain text password
+// Compare password with stored bcrypt hash
 export async function comparePassword(password: string, storedPassword: string): Promise<boolean> {
-  // Direct string comparison for plain text passwords
+  // If stored password is a bcrypt hash, use bcrypt compare
+  if (storedPassword.startsWith("$2")) {
+    return bcryptjs.compare(password, storedPassword);
+  }
+  // Fallback: direct comparison for plain text passwords
   return password === storedPassword;
 }
 
