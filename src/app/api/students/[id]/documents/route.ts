@@ -92,10 +92,13 @@ export async function POST(
 
     try {
       // Upload file to AWS S3
+      // Preserve the original file extension so S3 keys are always retrievable
+      const fileExtension = file.name.split(".").pop() || "";
+      const safeDocType = documentType.replace(/\s+/g, "_");
       const s3Url = await uploadToS3(
         file,
         `documents/students/${studentId}`,
-        `${documentType}_${Date.now()}`
+        `${safeDocType}_${Date.now()}${fileExtension ? "." + fileExtension : ""}`
       );
 
       // Create document record in database with S3 key

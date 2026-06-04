@@ -139,7 +139,12 @@ export async function listPaymentsForRole(input: {
         LEFT JOIN payment_orders po ON po.fee_id = f.id
         LEFT JOIN payment_transactions pt ON pt.razorpay_order_id = po.razorpay_order_id
         LEFT JOIN fee_receipts fr ON fr.razorpay_order_id = po.razorpay_order_id
-        WHERE f.studentId = ${input.studentId ?? 0} AND f.status = 'PAID'
+        WHERE f.studentId = ${input.studentId ?? 0}
+          AND f.status = 'PAID'
+          AND NOT EXISTS (
+            SELECT 1 FROM installments i
+            WHERE i.feeId = f.id AND i.status = 'PAID'
+          )
         ORDER BY COALESCE(f.paidAt, po.updated_at, NOW()) DESC
         LIMIT ${limit}
       `
@@ -172,7 +177,12 @@ export async function listPaymentsForRole(input: {
         LEFT JOIN payment_orders po ON po.fee_id = f.id
         LEFT JOIN payment_transactions pt ON pt.razorpay_order_id = po.razorpay_order_id
         LEFT JOIN fee_receipts fr ON fr.razorpay_order_id = po.razorpay_order_id
-        WHERE s.classEnrolled = ${input.assignedClass ?? ""} AND f.status = 'PAID'
+        WHERE s.classEnrolled = ${input.assignedClass ?? ""}
+          AND f.status = 'PAID'
+          AND NOT EXISTS (
+            SELECT 1 FROM installments i
+            WHERE i.feeId = f.id AND i.status = 'PAID'
+          )
         ORDER BY COALESCE(f.paidAt, po.updated_at, NOW()) DESC
         LIMIT ${limit}
       `
@@ -205,6 +215,10 @@ export async function listPaymentsForRole(input: {
       LEFT JOIN payment_transactions pt ON pt.razorpay_order_id = po.razorpay_order_id
       LEFT JOIN fee_receipts fr ON fr.razorpay_order_id = po.razorpay_order_id
       WHERE f.status = 'PAID'
+        AND NOT EXISTS (
+          SELECT 1 FROM installments i
+          WHERE i.feeId = f.id AND i.status = 'PAID'
+        )
       ORDER BY COALESCE(f.paidAt, po.updated_at, NOW()) DESC
       LIMIT ${limit}
     `

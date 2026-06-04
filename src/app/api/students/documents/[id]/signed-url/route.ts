@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import db from "@/lib/db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getSignedDownloadUrl } from "@/lib/aws-s3";
+import { getSignedDownloadUrl, s3KeyExists } from "@/lib/aws-s3";
 
 export async function GET(
   req: Request,
@@ -30,7 +30,7 @@ export async function GET(
       );
     }
 
-    // Check access: Students can only view their own, HOD can view any
+    // Check access: Students can only view their own, HOD/NON_TEACHING_STAFF can view any
     if (user.role === "STUDENT" && document.studentId !== parseInt(user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -68,12 +68,27 @@ export async function GET(
 
     console.log("S3 Key:", s3Key);
 
-    // Validate S3 key
+    // Validate S3 key is not empty
     if (!s3Key || s3Key.length === 0) {
       console.error("Invalid S3 key:", document.fileUrl);
       return NextResponse.json(
         { error: "Document URL is invalid" },
         { status: 400 }
+      );
+    }
+
+    // Verify the object actually exists in S3 before generating a signed URL.
+    // This prevents the student from seeing a raw S3 "NoSuchKey" XML error page.
+    const exists = await s3KeyExists(s3Key);
+    if (!exists) {
+      console.error("S3 object not found for key:", s3Key);
+      return NextResponse.json(
+        {
+          error:
+            "The document file could not be found in storage. It may have been uploaded with an earlier version of the system. Please re-upload this document.",
+          code: "S3_KEY_NOT_FOUND",
+        },
+        { status: 404 }
       );
     }
 

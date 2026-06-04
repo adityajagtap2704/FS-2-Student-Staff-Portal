@@ -76,23 +76,23 @@ export async function verifyOTP(email: string, code: string): Promise<{ success:
       return { success: false, message: "OTP does not match email" };
     }
 
-    // For testing: allow VERIFIED OTPs to be reused
-    // if (otp.status === "VERIFIED") {
-    //   return { success: false, message: "OTP already used - request a new one" };
-    // }
+    // Prevent OTP reuse
+    if (otp.status === "VERIFIED") {
+      return { success: false, message: "OTP already used - request a new one" };
+    }
 
     if (otp.status === "EXPIRED") {
       return { success: false, message: "OTP expired - request a new one" };
     }
 
-    // For testing: skip expiry check
-    // if (new Date() > otp.expiresAt) {
-    //   await db.oTP.update({
-    //     where: { id: otp.id },
-    //     data: { status: "EXPIRED" },
-    //   });
-    //   return { success: false, message: "OTP expired - request a new one" };
-    // }
+    // Check OTP expiry
+    if (new Date() > otp.expiresAt) {
+      await db.oTP.update({
+        where: { id: otp.id },
+        data: { status: "EXPIRED" },
+      });
+      return { success: false, message: "OTP expired - request a new one" };
+    }
 
     // Mark OTP as verified (atomic operation to prevent race conditions)
     const updated = await db.oTP.update({

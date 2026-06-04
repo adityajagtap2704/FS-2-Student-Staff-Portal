@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import db from "@/lib/db";
-import { verifyOTP, isEmailVerified } from "@/lib/otp";
+import { verifyOTP } from "@/lib/otp";
 import { generateAdmissionReferenceNumber, generateEnquiryNumber } from "@/lib/enquiry";
 import { validateAdmissionForm, sanitizeObject } from "@/lib/validation";
 import { sendEmail } from "@/lib/email";
@@ -56,17 +56,14 @@ export async function POST(req: Request) {
     }
 
     // ── Duplicate check ───────────────────────────────────────────────────────
-    // Phase 2: Enhanced duplicate check - block PENDING, APPROVED, and REJECTED (prevent re-submission)
-    // Allow same phone (parent can have multiple children)
-    // Only block if SAME STUDENT (same name + parent)
-    
-    // Block if same studentName + parentName already has an enquiry (same student)
-    // This allows multiple children from same parent (different names)
+    // Block re-submission only if a PENDING or APPROVED enquiry already exists.
+    // REJECTED students are allowed to reapply — do NOT block them.
+    // Same parent can have multiple children (different student names) — that is fine.
     const sameStudentExists = await db.admission.findFirst({
       where: {
         studentName: { equals: sanitized.studentName.trim() },
         parentName:  { equals: sanitized.parentName.trim() },
-        status:      { in: ["PENDING", "APPROVED", "REJECTED"] },
+        status:      { in: ["PENDING", "APPROVED"] },
       },
     });
     if (sameStudentExists) {
