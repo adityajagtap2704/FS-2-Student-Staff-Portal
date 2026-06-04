@@ -111,11 +111,23 @@ export default function PaymentsClient({ studentId }: { studentId: number }) {
   }
 
   // ── Summary stats ──────────────────────────────────────────────────────────
+  // A fee paid via installments must not be counted again as a full payment.
+  // The API already excludes those FULL rows, but we guard here too so the
+  // counts stay correct even if old data slips through.
+  const feeIdsWithInstallments = new Set(
+    payments
+      .filter(p => p.paymentType === "INSTALLMENT")
+      .map(p => p.feeId)
+  );
+
   const totalPaid = payments
     .filter(p => p.status === "PAID")
+    .filter(p => !(p.paymentType === "FULL" && feeIdsWithInstallments.has(p.feeId)))
     .reduce((sum, p) => sum + p.amountPaise / 100, 0);
 
-  const fullCount        = payments.filter(p => p.paymentType === "FULL").length;
+  const fullCount = payments.filter(
+    p => p.paymentType === "FULL" && !feeIdsWithInstallments.has(p.feeId)
+  ).length;
   const installmentCount = payments.filter(p => p.paymentType === "INSTALLMENT").length;
 
   // ── Render ─────────────────────────────────────────────────────────────────

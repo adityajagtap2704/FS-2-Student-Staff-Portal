@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Initialize S3 Client
@@ -95,6 +95,29 @@ export async function deleteFromS3(s3Key: string): Promise<void> {
   } catch (error) {
     console.error("S3 Delete Error:", error);
     throw new Error("Failed to delete file from S3");
+  }
+}
+
+/**
+ * Check whether an S3 key exists in the bucket (HEAD request — no data transfer)
+ * @param s3Key - S3 object key
+ * @returns true if the object exists, false otherwise
+ */
+export async function s3KeyExists(s3Key: string): Promise<boolean> {
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+    });
+    await s3Client.send(command);
+    return true;
+  } catch (error: any) {
+    // 404 / NoSuchKey means the object doesn't exist
+    if (error?.name === "NotFound" || error?.$metadata?.httpStatusCode === 404) {
+      return false;
+    }
+    // Re-throw unexpected errors (permissions, network, etc.)
+    throw error;
   }
 }
 

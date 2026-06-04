@@ -149,11 +149,22 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
     if (!confirm("Are you sure you want to delete this document?")) return;
 
     try {
-      // Note: Delete endpoint not yet implemented in API
-      // This is a placeholder for future implementation
-      toast.info("Delete", "Document deletion not yet available");
+      const res = await fetch(`/api/students/${studentId}/documents`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentId: docId }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Delete failed");
+      }
+
+      toast.success("Deleted", "Document has been removed. You can now re-upload.");
+      await loadDocuments();
     } catch (error) {
-      toast.error("Delete failed", "Please try again");
+      const errorMsg = error instanceof Error ? error.message : "Please try again";
+      toast.error("Delete failed", errorMsg);
     }
   };
 
@@ -367,7 +378,14 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
                                   window.open(data.signedUrl, "_blank");
                                 } else {
                                   const error = await res.json();
-                                  toast.error("Error", error.error || "Failed to generate download link");
+                                  if (error.code === "S3_KEY_NOT_FOUND") {
+                                    toast.error(
+                                      "File Not Found",
+                                      "This document file is missing from storage. Please delete it using the trash icon and re-upload."
+                                    );
+                                  } else {
+                                    toast.error("Error", error.error || "Failed to generate download link");
+                                  }
                                 }
                               } catch (error) {
                                 toast.error("Error", "Failed to generate download link");
@@ -379,11 +397,12 @@ export default function DocumentsClient({ studentId }: { studentId: number }) {
                           >
                             <Download size={12} />
                           </motion.button>
-                          {doc.status === "REJECTED" && (
+                          {(doc.status === "REJECTED" || doc.fileUrl?.startsWith("https://storage.example.com")) && (
                             <motion.button
                               onClick={() => handleDelete(doc.id)}
                               className="inline-flex items-center gap-1 text-xs text-red-500 hover:text-red-600 transition-colors"
                               whileHover={{ scale: 1.05 }}
+                              title="Delete document"
                             >
                               <Trash2 size={12} />
                             </motion.button>
