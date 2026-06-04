@@ -4,7 +4,7 @@
 -- ============================================================================
 
 -- Drop existing database if it exists
-DROP DATABASE IF EXISTS kalnet_db;
+-- DROP DATABASE IF EXISTS kalnet_db;
 
 -- Create fresh database
 CREATE DATABASE kalnet_db;
